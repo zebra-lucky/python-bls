@@ -1,8 +1,10 @@
-import bls12381
 from collections import namedtuple
 from copy import deepcopy
-from fields import FieldExtBase, Fq, Fq2, Fq6, Fq12
-from util import hash256, hash512
+
+from . import bls12381
+from .fields import FieldExtBase, Fq, Fq2, Fq6, Fq12
+from .util import hash256, hash512
+
 
 # Struct for elliptic curve parameters
 EC = namedtuple("EC", "q a b gx gy g2x g2y n h x k sqrt_n3 sqrt_n3m1o2")

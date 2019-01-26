@@ -1,7 +1,8 @@
 from copy import deepcopy
-from ec import (AffinePoint, JacobianPoint, default_ec,
-                default_ec_twist, y_for_x)
-from fields import Fq, Fq2
+
+from .ec import (AffinePoint, JacobianPoint, default_ec,
+                 default_ec_twist, y_for_x)
+from .fields import Fq, Fq2
 
 
 class Signature:

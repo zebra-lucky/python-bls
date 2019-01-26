@@ -1,5 +1,6 @@
 # flake8: noqa
-from fields import Fq, Fq2
+from .fields import Fq, Fq2
+
 
 # BLS parameter used to generate the other parameters
 # Spec is found here: https://github.com/zkcrypto/pairing/tree/master/src/bls12_381

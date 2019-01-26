@@ -1,18 +1,20 @@
 # flake8: noqa: E501
-from aggregation_info import AggregationInfo
-from bls import BLS
-from ec import (default_ec, default_ec_twist, generator_Fq, generator_Fq2,
-                hash_to_point_Fq, hash_to_point_Fq2, sw_encode, twist, untwist,
-                y_for_x)
-from fields import Fq, Fq2, Fq6, Fq12
-from itertools import combinations
-from keys import PrivateKey, PublicKey, ExtendedPrivateKey
-import random
-from signature import Signature
-from sys import setrecursionlimit
 import time
-from threshold import Threshold
-from util import hash256
+import random
+from itertools import combinations
+from sys import setrecursionlimit
+
+from .aggregation_info import AggregationInfo
+from .bls import BLS
+from .ec import (default_ec, default_ec_twist, generator_Fq, generator_Fq2,
+                 hash_to_point_Fq, hash_to_point_Fq2, sw_encode, twist, untwist,
+                 y_for_x)
+from .fields import Fq, Fq2, Fq6, Fq12
+from .keys import PrivateKey, PublicKey, ExtendedPrivateKey
+from .signature import Signature
+from .threshold import Threshold
+from .util import hash256
+
 
 setrecursionlimit(10**6)
 

@@ -1,5 +1,6 @@
 from copy import deepcopy
-from util import hash256, hash_pks
+
+from .util import hash256, hash_pks
 
 
 class AggregationInfo:

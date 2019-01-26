@@ -1,12 +1,18 @@
-from aggregation_info import AggregationInfo
+import sys
 from copy import deepcopy
-from ec import (AffinePoint, JacobianPoint, default_ec, generator_Fq,
-                hash_to_point_Fq2, hash_to_point_prehashed_Fq2, y_for_x)
-from fields import Fq
-from secrets import SystemRandom
-from signature import Signature
-from threshold import Threshold
-from util import hash256, hmac256
+from random import SystemRandom
+
+from .aggregation_info import AggregationInfo
+from .ec import (AffinePoint, JacobianPoint, default_ec, generator_Fq,
+                 hash_to_point_Fq2, hash_to_point_prehashed_Fq2, y_for_x)
+from .fields import Fq
+from .signature import Signature
+from .threshold import Threshold
+from .util import hash256, hmac256
+
+
+sys.setrecursionlimit(max(2000, sys.getrecursionlimit()))
+
 
 RNG = SystemRandom()
 

@@ -1,11 +1,11 @@
-from aggregation_info import AggregationInfo
-from ec import (AffinePoint, JacobianPoint, default_ec, generator_Fq,
-                hash_to_point_prehashed_Fq2)
-from fields import Fq, Fq2, Fq12
-from keys import PrivateKey, PublicKey
-from pairing import ate_pairing_multi
-from signature import Signature
-from util import hash_pks
+from .aggregation_info import AggregationInfo
+from .ec import (AffinePoint, JacobianPoint, default_ec, generator_Fq,
+                 hash_to_point_prehashed_Fq2)
+from .fields import Fq, Fq2, Fq12
+from .keys import PrivateKey, PublicKey
+from .pairing import ate_pairing_multi
+from .signature import Signature
+from .util import hash_pks
 
 
 class BLS:

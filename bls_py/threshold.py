@@ -1,7 +1,8 @@
-from ec import AffinePoint, default_ec, generator_Fq
-from fields import Fq, Fq2
-from signature import Signature
 from typing import List
+
+from .ec import AffinePoint, default_ec, generator_Fq
+from .fields import Fq, Fq2
+from .signature import Signature
 
 
 class Threshold:
