@@ -1,4 +1,5 @@
 from copy import deepcopy
+from binascii import hexlify
 
 from .util import hash256, hash_pks
 
@@ -52,7 +53,8 @@ class AggregationInfo:
     def __str__(self):
         ret = ""
         for key, value in self.tree.items():
-            ret += ("(" + key[0].hex() + "," + key[1].serialize().hex()
+            ret += ("(" + hexlify(key[0]).decode('ascii') + ","
+                    + hexlify(key[1].serialize()).decode('ascii')
                     + "):\n" + hex(value) + "\n")
         return ret
 

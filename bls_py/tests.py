@@ -4,6 +4,7 @@ import time
 import random
 from itertools import combinations
 from sys import setrecursionlimit
+from binascii import hexlify
 
 from bls_py.aggregation_info import AggregationInfo
 from bls_py.bls import BLS
@@ -202,9 +203,9 @@ class TestBLS(unittest.TestCase):
         seed = bytes([1, 50, 6, 244, 24, 199, 1, 25])
         esk =  ExtendedPrivateKey.from_seed(seed)
         assert(esk.private_key.get_public_key().get_fingerprint() == 0xa4700b27)
-        assert(esk.chain_code.hex() == "d8b12555b4cc5578951e4a7c80031e22019cc0dce168b3ed88115311b8feb1e3")
+        assert(hexlify(esk.chain_code).decode('ascii') == "d8b12555b4cc5578951e4a7c80031e22019cc0dce168b3ed88115311b8feb1e3")
         esk77 = esk.private_child(77 + 2**31)
-        assert(esk77.chain_code.hex() == "f2c8e4269bb3e54f8179a5c6976d92ca14c3260dd729981e9d15f53049fd698b")
+        assert(hexlify(esk77.chain_code).decode('ascii') == "f2c8e4269bb3e54f8179a5c6976d92ca14c3260dd729981e9d15f53049fd698b")
         assert(esk77.private_key.get_public_key().get_fingerprint() == 0xa8063dcf)
 
         assert(esk.private_child(3)
