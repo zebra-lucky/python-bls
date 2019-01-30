@@ -237,7 +237,7 @@ class BLS:
                 raise Exception("Invalid number of keys")
 
             priv_pub_keys = zip(public_keys, private_keys)
-            priv_pub_keys.sort()
+            priv_pub_keys = sorted(priv_pub_keys)
             computed_Ts = hash_pks(len(private_keys), public_keys)
             n = public_keys[0].value.ec.n
             

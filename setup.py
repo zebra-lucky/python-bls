@@ -13,7 +13,7 @@ long_description=('Implements the BLS12 curve and optimal ate pairing, '
 
 setup(
     name='python-bls',
-    version='0.1.1',
+    version='0.1.2',
     url='https://github.com/zebra-lucky/python-bls',
     license='Apache License 2.0',
     install_requires=[
