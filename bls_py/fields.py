@@ -69,12 +69,13 @@ class Fq(int):
     def __pow__(self, other):
         if other == 0:
             return Fq(self.Q, 1)
-        elif other == 1:
-            return self
-        elif other % 2 == 0:
-            return (self * self) ** (other // 2)
-        else:
-            return (self * self) ** (other // 2) * self
+        res = 1
+        while other > 0:
+            if other & 1:
+                res = res * self
+            other = other >> 1
+            self = self * self
+        return res
 
     def qi_power(self, i):
         return self

@@ -3,7 +3,6 @@ import unittest
 import time
 import random
 from itertools import combinations
-from sys import setrecursionlimit
 from binascii import hexlify
 
 from bls_py.aggregation_info import AggregationInfo
@@ -16,9 +15,6 @@ from bls_py.keys import PrivateKey, PublicKey, ExtendedPrivateKey
 from bls_py.signature import Signature
 from bls_py.threshold import Threshold
 from bls_py.util import hash256
-
-
-setrecursionlimit(10**6)
 
 
 def rand_scalar(ec=default_ec):

@@ -11,9 +11,6 @@ from .threshold import Threshold
 from .util import hash256, hmac256
 
 
-sys.setrecursionlimit(max(2000, sys.getrecursionlimit()))
-
-
 RNG = SystemRandom()
 
 
