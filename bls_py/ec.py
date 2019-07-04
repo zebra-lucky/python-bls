@@ -2,7 +2,13 @@ from collections import namedtuple
 from copy import deepcopy
 
 from . import bls12381
-from .fields import FieldExtBase, Fq, Fq2, Fq6, Fq12
+from .fields import (FieldExtBase, Fq, Fq2, Fq6, Fq12,
+                     fq2_t_add_fq_int, fq2_t_sub_fq_int,
+                     fq2_t_mul_fq2_t, fq2_t_mul_fq_int, fq_int_sub_fq2_t,
+                     fq2_t_add_fq2_t, fq2_t_sub_fq2_t, fq6_t_mul_fq6_t,
+                     fq6_t_mul_fq2_t, fq6_t_mul_fq_int, fq6_t_add_fq6_t,
+                     fq6_t_sub_fq6_t, fq12_t_mul_fq12_t, fq12_t_mul_fq2_t,
+                     fq12_t_mul_fq_int, fq12_t_add_fq12_t, fq12_t_sub_fq12_t)
 from .util import hash256, hash512
 
 
@@ -79,7 +85,7 @@ class AffinePoint:
         return not self.__eq__(other)
 
     def __mul__(self, c):
-        if not isinstance(c, int):
+        if not isinstance(c, (Fq, int)):
             raise ValueError("Error, must be int or Fq")
         return scalar_mult_jacobian(c, self.to_jacobian(), self.ec).to_affine()
 
@@ -169,7 +175,7 @@ class JacobianPoint:
         return not self.__eq__(other)
 
     def __mul__(self, c):
-        if not isinstance(c, int):
+        if not isinstance(c, (Fq, int)):
             raise ValueError("Error, must be int or Fq")
         return scalar_mult_jacobian(c, self, self.ec)
 
@@ -255,26 +261,125 @@ def double_point_jacobian(p1, ec=default_ec, FE=Fq):
     if Y == FE.zero(ec.q) or p1.infinity:
         return JacobianPoint(FE.one(ec.q), FE.one(ec.q),
                              FE.zero(ec.q), True, ec)
+    Q = ec.q
+    if FE == Fq2:
+        xr, yr, zr = double_point_jacobian_fq2_t(X.ZT, Y.ZT, Z.ZT, ec)
+        return JacobianPoint(Fq2(Q, xr), Fq2(Q, yr), Fq2(Q, zr), False, ec)
+    elif FE == Fq and ec == default_ec:
+        xr, yr, zr = double_point_jacobian_fq_int(X.Z, Y.Z, Z.Z, ec)
+        return JacobianPoint(Fq(Q, xr), Fq(Q, yr), Fq(Q, zr), False, ec)
+    elif FE == Fq and ec == default_ec_twist:
+        xr, yr, zr = double_point_jacobian_fq_int_twist(X.Z, Y.Z, Z.Z, ec)
+        return JacobianPoint(Fq2(Q, xr), Fq2(Q, yr), Fq2(Q, zr), False, ec)
+    elif FE == Fq12:
+        xr, yr, zr = double_point_jacobian_fq12_t(X.ZT, Y.ZT, Z.ZT, ec)
+        return JacobianPoint(Fq12(Q, xr), Fq12(Q, yr), Fq12(Q, zr), False, ec)
+    else:
+        raise ValueError('FE must be Fq, Fq2 or Fq12')
 
+
+def double_point_jacobian_fq_int(X, Y, Z, ec):
+    '''dobule point with fq int X, Y, Z, returning tuple'''
+    P = ec.q
+    ec_a = ec.a.Z
     # S = 4*X*Y^2
-    S = 4 * X * Y * Y
+    S = 4*X*Y*Y%P
 
-    Z_sq = Z * Z
-    Z_4th = Z_sq * Z_sq
-    Y_sq = Y * Y
-    Y_4th = Y_sq * Y_sq
+    Z_sq = Z*Z%P
+    Z_4th = Z_sq*Z_sq%P
+    Y_sq = Y*Y%P
+    Y_4th = Y_sq*Y_sq%P
 
     # M = 3*X^2 + a*Z^4
-    M = 3 * X * X
-    M += ec.a * Z_4th
+    M = (3*X*X%P + ec_a*Z_4th%P)%P
 
     # X' = M^2 - 2*S
-    X_p = M * M - 2 * S
+    X_p = (M*M%P - 2*S%P)%P
     # Y' = M*(S - X') - 8*Y^4
-    Y_p = M * (S - X_p) - 8 * Y_4th
+    Y_p = (M*((S - X_p)%P)%P - 8*Y_4th%P)%P
     # Z' = 2*Y*Z
-    Z_p = 2 * Y * Z
-    return JacobianPoint(X_p, Y_p, Z_p, False, ec)
+    Z_p = 2*Y*Z%P
+    return X_p, Y_p, Z_p
+
+
+def double_point_jacobian_fq_int_twist(X, Y, Z, ec):
+    '''dobule point with fq int X, Y, Z, returning tuple'''
+    P = ec.q
+    ec_a = ec.a.ZT
+    addi_f = fq2_t_add_fq_int
+    subi_f = fq2_t_sub_fq_int
+    muli_f = fq2_t_mul_fq_int
+    mul_f = fq2_t_mul_fq2_t
+
+    # S = 4*X*Y^2
+    S = 4*X*Y*Y%P
+
+    Z_sq = Z*Z%P
+    Z_4th = Z_sq*Z_sq%P
+    Y_sq = Y*Y%P
+    Y_4th = Y_sq*Y_sq%P
+
+    # M = 3*X^2 + a*Z^4
+    M = addi_f(P, muli_f(P, ec_a, Z_4th), 3*X*X%P)
+
+    # X' = M^2 - 2*S
+    X_p = subi_f(P, mul_f(P, M, M), 2*S%P)
+    # Y' = M*(S - X') - 8*Y^4
+    Y_p = subi_f(P, mul_f(P, M, fq_int_sub_fq2_t(P, S, X_p)) , 8*Y_4th%P)
+    # Z' = 2*Y*Z
+    Z_p = addi_f(P, (0,0), 2*Y*Z%P)
+    return X_p, Y_p, Z_p
+
+
+def double_point_jacobian_fq2_t(X, Y, Z, ec):
+    '''dobule point with fq2 tuples X, Y, Z, returning tuple of tuples'''
+    if ec == default_ec_twist:
+        mul_ec_a = fq2_t_mul_fq2_t
+        ec_a = ec.a.ZT
+    else:
+        mul_ec_a = fq2_t_mul_fq_int
+        ec_a = ec.a.Z
+    func_t = (fq2_t_mul_fq2_t, fq2_t_mul_fq_int, mul_ec_a,
+               fq2_t_add_fq2_t, fq2_t_sub_fq2_t)
+    return double_point_jacobian_fqx_t(func_t, X, Y, Z, ec.q, ec_a)
+
+
+def double_point_jacobian_fq12_t(X, Y, Z, ec):
+    '''dobule point with fq12 tuples X, Y, Z, returning tuple of tuples'''
+    if ec == default_ec_twist:
+        mul_ec_a = fq12_t_mul_fq2_t
+        ec_a = ec.a.ZT
+    else:
+        mul_ec_a = fq12_t_mul_fq_int
+        ec_a = ec.a.Z
+    func_t = (fq12_t_mul_fq12_t, fq12_t_mul_fq_int, mul_ec_a,
+               fq12_t_add_fq12_t, fq12_t_sub_fq12_t)
+    return double_point_jacobian_fqx_t(func_t, X, Y, Z, ec.q, ec_a)
+
+
+def double_point_jacobian_fqx_t(func_t, X, Y, Z, P, ec_a):
+    '''dobule point with tuples X, Y, Z, returning tuple of tuples,
+    using func_t functions tuple for operations'''
+    mul_f, mul_i_f, mul_ec_a, add_f, sub_f = func_t
+    # S = 4*X*Y^2
+    S = mul_f(P, mul_f(P, mul_i_f(P, X, 4), Y), Y)
+
+    Z_sq = mul_f(P, Z, Z)
+    Z_4th = mul_f(P, Z_sq, Z_sq)
+    Y_sq = mul_f(P, Y, Y)
+    Y_4th = mul_f(P, Y_sq, Y_sq)
+
+    # M = 3*X^2 + a*Z^4
+    M = mul_f(P, mul_i_f(P, X, 3), X)
+    M = add_f(P, mul_ec_a(P, Z_4th, ec_a), M)
+
+    # X' = M^2 - 2*S
+    X_p = sub_f(P, mul_f(P, M, M), mul_i_f(P, S, 2))
+    # Y' = M*(S - X') - 8*Y^4
+    Y_p = sub_f(P, mul_f(P, M, sub_f(P, S, X_p)), mul_i_f(P, Y_4th, 8))
+    # Z' = 2*Y*Z
+    Z_p = mul_f(P, mul_i_f(P, Y, 2), Z)
+    return X_p, Y_p, Z_p
 
 
 def add_points_jacobian(p1, p2, ec=default_ec, FE=Fq):
@@ -286,14 +391,24 @@ def add_points_jacobian(p1, p2, ec=default_ec, FE=Fq):
         return p2
     if p2.infinity:
         return p1
-    # U1 = X1*Z2^2
-    U1 = p1.x * pow(p2.z, 2)
-    # U2 = X2*Z1^2
-    U2 = p2.x * pow(p1.z, 2)
-    # S1 = Y1*Z2^3
-    S1 = p1.y * pow(p2.z, 3)
-    # S2 = Y2*Z1^3
-    S2 = p2.y * pow(p1.z, 3)
+
+    if FE == Fq:
+        U1, U2, S1, S2 = calc_u1_u2_s1_s2_fq_int(p1.x.Z, p1.y.Z, p1.z.Z,
+                                                 p2.x.Z, p2.y.Z, p2.z.Z,
+                                                 ec)
+    elif FE == Fq2:
+        U1, U2, S1, S2 = calc_u1_u2_s1_s2_fqx_t(fq2_t_mul_fq2_t,
+                                                p1.x.ZT, p1.y.ZT, p1.z.ZT,
+                                                p2.x.ZT, p2.y.ZT, p2.z.ZT,
+                                                ec)
+    elif FE == Fq12:
+        U1, U2, S1, S2 = calc_u1_u2_s1_s2_fqx_t(fq12_t_mul_fq12_t,
+                                                p1.x.ZT, p1.y.ZT, p1.z.ZT,
+                                                p2.x.ZT, p2.y.ZT, p2.z.ZT,
+                                                ec)
+    else:
+        raise ValueError('FE must be Fq, Fq2 or Fq12')
+
     if U1 == U2:
         if S1 != S2:
             return JacobianPoint(FE.one(ec.q), FE.one(ec.q),
@@ -301,19 +416,92 @@ def add_points_jacobian(p1, p2, ec=default_ec, FE=Fq):
         else:
             return double_point_jacobian(p1, ec, FE)
 
+    type_u1 = type(U1)
+    if type_u1 == int:
+        return calc_jp_on_fq_int_us(U1, U2, S1, S2, p1.z.Z, p2.z.Z, ec)
+    elif type_u1 == tuple and len(U1) == 2:
+        func_t = (fq2_t_mul_fq2_t, fq2_t_sub_fq2_t, fq2_t_mul_fq_int)
+        return calc_jp_on_fqx_t_us(func_t, U1, U2, S1, S2,
+                                   p1.z.ZT, p2.z.ZT, ec)
+    elif type_u1 == tuple and len(U1) == 12:
+        func_t = (fq12_t_mul_fq12_t, fq12_t_sub_fq12_t, fq12_t_mul_fq_int)
+        return calc_jp_on_fqx_t_us(func_t, U1, U2, S1, S2,
+                                   p1.z.ZT, p2.z.ZT, ec)
+    else:
+        raise ValueError('FE must be Fq, Fq2 or Fq12')
+
+
+def calc_u1_u2_s1_s2_fq_int(x1, y1, z1, x2, y2, z2, ec):
+    '''x, y, z inputs of type int, returning tuple of int'''
+    P = ec.q
+    # U1 = X1*Z2^2
+    U1 = x1*z2*z2%P
+    # U2 = X2*Z1^2
+    U2 = x2*z1*z1%P
+    # S1 = Y1*Z2^3
+    S1 = y1*z2*z2*z2%P
+    # S2 = Y2*Z1^3
+    S2 = y2*z1*z1*z1%P
+    return(U1, U2, S1, S2)
+
+
+def calc_u1_u2_s1_s2_fqx_t(mul_f, x1_t, y1_t, z1_t, x2_t, y2_t, z2_t, ec):
+    '''x, y, z inputs of type fq2_t, returning tuple of fq2_t tuples'''
+    P = ec.q
+    # U1 = X1*Z2^2
+    U1 = mul_f(P, mul_f(P, x1_t, z2_t), z2_t)
+    # U2 = X2*Z1^2
+    U2 = mul_f(P, mul_f(P, x2_t, z1_t), z1_t)
+    # S1 = Y1*Z2^3
+    S1 = mul_f(P, mul_f(P, mul_f(P, y1_t, z2_t), z2_t), z2_t)
+    # S2 = Y2*Z1^3
+    S2 = mul_f(P, mul_f(P, mul_f(P, y2_t, z1_t), z1_t), z1_t)
+    return(U1, U2, S1, S2)
+
+
+def calc_jp_on_fq_int_us(U1, U2, S1, S2, Z1, Z2, ec):
+    '''calc jacobian point with int U1, U2, S1, S2, Z1, Z2'''
+    P = ec.q
     # H = U2 - U1
-    H = U2 - U1
+    H = (U2-U1)%P
     # R = S2 - S1
-    R = S2 - S1
-    H_sq = H * H
-    H_cu = H * H_sq
+    R = (S2-S1)%P
+    H_sq = H*H%P
+    H_cu = H*H_sq%P
     # X3 = R^2 - H^3 - 2*U1*H^2
-    X3 = R * R - H_cu - 2 * U1 * H_sq
+    X3 = (R*R%P - H_cu - 2*U1*H_sq%P)%P
     # Y3 = R*(U1*H^2 - X3) - S1*H^3
-    Y3 = R * (U1 * H_sq - X3) - S1 * H_cu
+    Y3 = (R*(U1*H_sq%P - X3)%P - S1*H_cu%P)%P
     # Z3 = H*Z1*Z2
-    Z3 = H * p1.z * p2.z
-    return JacobianPoint(X3, Y3, Z3, False, ec)
+    Z3 = H*Z1*Z2%P
+    return JacobianPoint(Fq(P, X3), Fq(P, Y3), Fq(P, Z3), False, ec)
+
+
+def calc_jp_on_fqx_t_us(func_t, U1, U2, S1, S2, Z1, Z2, ec):
+    '''calc jacobian point with tuples U1, U2, S1, S2, Z1, Z2,
+    using func_t functions tuple for operations'''
+    P = ec.q
+    mul_f, sub_f, muli_f = func_t
+    # H = U2 - U1
+    H = sub_f(P, U2, U1)
+    # R = S2 - S1
+    R = sub_f(P, S2, S1)
+    H_sq = mul_f(P, H, H)
+    H_cu = mul_f(P, H, H_sq)
+    # X3 = R^2 - H^3 - 2*U1*H^2
+    X3 = sub_f(P,
+               sub_f(P, mul_f(P, R, R), H_cu),
+               mul_f(P, H_sq, muli_f(P, U1, 2)))
+    # Y3 = R*(U1*H^2 - X3) - S1*H^3
+    Y3 = sub_f(P,
+               mul_f(P, R, sub_f(P, mul_f(P, U1, H_sq), X3)),
+               mul_f(P, S1, H_cu))
+    # Z3 = H*Z1*Z2
+    Z3 = mul_f(P, mul_f(P, Z1, Z2), H)
+    if len(U1) == 2:
+        return JacobianPoint(Fq2(P, X3), Fq2(P, Y3), Fq2(P, Z3), False, ec)
+    else:
+        return JacobianPoint(Fq12(P, X3), Fq12(P, Y3), Fq12(P, Z3), False, ec)
 
 
 def scalar_mult(c, p1, ec=default_ec, FE=Fq):
@@ -345,7 +533,7 @@ def scalar_mult_jacobian(c, p1, ec=default_ec, FE=Fq):
         return JacobianPoint(FE.one(ec.q), FE.one(ec.q),
                              FE.zero(ec.q), True, ec)
     if isinstance(c, FE):
-        c = int(c)
+        c = c.Z
     result = JacobianPoint(FE.one(ec.q), FE.one(ec.q),
                            FE.zero(ec.q), True, ec)
     addend = p1

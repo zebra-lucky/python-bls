@@ -10,23 +10,26 @@ from bls_py.bls import BLS
 from bls_py.ec import (default_ec, default_ec_twist, generator_Fq, generator_Fq2,
                  hash_to_point_Fq, hash_to_point_Fq2, sw_encode, twist, untwist,
                  y_for_x)
-from bls_py.fields import Fq, Fq2, Fq6, Fq12
+from bls_py.fields import Fq, Fq2, Fq6, Fq12, bls12381_q as Q
 from bls_py.keys import PrivateKey, PublicKey, ExtendedPrivateKey
 from bls_py.signature import Signature
 from bls_py.threshold import Threshold
 from bls_py.util import hash256
+from bls_py.tdata import (fq_list, fq_res_list, fq2_list, fq2_res_list,
+                          fq6_list, fq6_res_list, fq12_list, fq12_res_list)
 
 
 def rand_scalar(ec=default_ec):
     return random.randrange(1, ec.n)
 
+
 class TestBLS(unittest.TestCase):
 
     def test_fields(self):
-        a = Fq(17, 30)
-        b = Fq(17, -18)
-        c = Fq2(17, a, b)
-        d = Fq2(17, a + a, -5)
+        a = Fq(Q, 30)
+        b = Fq(Q, -18)
+        c = Fq2(Q, a, b)
+        d = Fq2(Q, a + a, -5)
         e = c * d
         f = e * d
         assert(f != e)
@@ -34,22 +37,22 @@ class TestBLS(unittest.TestCase):
         e_sqrt = e_sq.modsqrt()
         assert(pow(e_sqrt, 2) == e_sq)
 
-        a2 = Fq(172487123095712930573140951348,
+        a2 = Fq(Q,
                 3012492130751239573498573249085723940848571098237509182375)
-        b2 = Fq(172487123095712930573140951348, 3432984572394572309458723045723849)
-        c2 = Fq2(172487123095712930573140951348, a2, b2)
+        b2 = Fq(Q, 3432984572394572309458723045723849)
+        c2 = Fq2(Q, a2, b2)
         assert(b2 != c2)
 
-        g = Fq6(17, c, d, d*d*c)
-        h = Fq6(17, a + a*c, c*b*a, b*b*d*21)
-        i = Fq12(17, g, h)
+        g = Fq6(Q, c, d, d*d*c)
+        h = Fq6(Q, a + a*c, c*b*a, b*b*d*21)
+        i = Fq12(Q, g, h)
         assert(~(~i) == i)
-        assert((~(i.root)) * i.root == Fq6.one(17))
-        x = Fq12(17, Fq6.zero(17), i.root)
-        assert((~x) * x == Fq12.one(17))
+        assert((~(i.root)) * i.root == Fq6.one(Q))
+        x = Fq12(Q, Fq6.zero(Q), i.root)
+        assert((~x) * x == Fq12.one(Q))
 
-        j = Fq6(17, a + a*c, Fq2.zero(17), Fq2.zero(17))
-        j2 = Fq6(17, a + a*c, Fq2.zero(17), Fq2.one(17))
+        j = Fq6(Q, a + a*c, Fq2.zero(Q), Fq2.zero(Q))
+        j2 = Fq6(Q, a + a*c, Fq2.zero(Q), Fq2.one(Q))
         assert(j == (a + a*c))
         assert(j2 != (a + a*c))
         assert(j != j2)
@@ -421,6 +424,616 @@ class TestBLS(unittest.TestCase):
         self._test_threshold_instance(2, 2)
         for T in range(1, 6):
             self._test_threshold_instance(T, 5)
+
+
+class TestFields(unittest.TestCase):
+
+    def print_fqx(self, fqx):
+        print(f'    {fqx},')
+
+    def test_fq(self):
+        a = int(fq_list[0]); b = int(fq_list[1]);
+        c = int(fq_list[2]); d = int(fq_list[3]);
+        fqa = fq_list[0]; fqb = fq_list[1];
+        fqc = fq_list[2]; fqd = fq_list[3];
+
+        # fq op fq
+        assert fqa+fqb == fq_res_list[0]
+        assert fqa+fqc == fq_res_list[1]
+        assert fqa+fqd == fq_res_list[2]
+        assert fqb+fqc == fq_res_list[3]
+        assert fqb+fqd == fq_res_list[4]
+        assert fqc+fqd == fq_res_list[5]
+
+        assert fqa*fqb == fq_res_list[6]
+        assert fqa*fqc == fq_res_list[7]
+        assert fqa*fqd == fq_res_list[8]
+        assert fqb*fqc == fq_res_list[9]
+        assert fqb*fqd == fq_res_list[10]
+        assert fqc*fqd == fq_res_list[11]
+
+        assert fqa-fqb == fq_res_list[12]
+        assert fqa-fqc == fq_res_list[13]
+        assert fqa-fqd == fq_res_list[14]
+        assert fqb-fqc == fq_res_list[15]
+        assert fqb-fqd == fq_res_list[16]
+        assert fqc-fqd == fq_res_list[17]
+
+        # int op fq
+        assert a+fqb == fq_res_list[0]
+        assert a+fqc == fq_res_list[1]
+        assert a+fqd == fq_res_list[2]
+        assert b+fqc == fq_res_list[3]
+        assert b+fqd == fq_res_list[4]
+        assert c+fqd == fq_res_list[5]
+
+        assert a*fqb == fq_res_list[6]
+        assert a*fqc == fq_res_list[7]
+        assert a*fqd == fq_res_list[8]
+        assert b*fqc == fq_res_list[9]
+        assert b*fqd == fq_res_list[10]
+        assert c*fqd == fq_res_list[11]
+
+        assert a-fqb == fq_res_list[12]
+        assert a-fqc == fq_res_list[13]
+        assert a-fqd == fq_res_list[14]
+        assert b-fqc == fq_res_list[15]
+        assert b-fqd == fq_res_list[16]
+        assert c-fqd == fq_res_list[17]
+
+        # fq op int
+        assert fqa+b == fq_res_list[0]
+        assert fqa+c == fq_res_list[1]
+        assert fqa+d == fq_res_list[2]
+        assert fqb+c == fq_res_list[3]
+        assert fqb+d == fq_res_list[4]
+        assert fqc+d == fq_res_list[5]
+
+        assert fqa*b == fq_res_list[6]
+        assert fqa*c == fq_res_list[7]
+        assert fqa*d == fq_res_list[8]
+        assert fqb*c == fq_res_list[9]
+        assert fqb*d == fq_res_list[10]
+        assert fqc*d == fq_res_list[11]
+
+        assert fqa-b == fq_res_list[12]
+        assert fqa-c == fq_res_list[13]
+        assert fqa-d == fq_res_list[14]
+        assert fqb-c == fq_res_list[15]
+        assert fqb-d == fq_res_list[16]
+        assert fqc-d == fq_res_list[17]
+
+        # op fq
+        assert -fqa == fq_res_list[18]
+        assert -(-fqa) == fqa
+        assert -fqb == fq_res_list[19]
+        assert -(-fqb) == fqb
+        assert ~fqa == fq_res_list[20]
+        assert ~(~fqa) == fqa
+        assert ~fqb == fq_res_list[21]
+        assert ~(~fqb) == fqb
+
+    def test_fq2(self):
+        a = int(fq_list[0]); b = int(fq_list[1]);
+        c = int(fq_list[2]); d = int(fq_list[3]);
+        fqa = fq_list[0]; fqb = fq_list[1];
+        fqc = fq_list[2]; fqd = fq_list[3];
+        fq2a = fq2_list[0]; fq2b = fq2_list[1]
+        fq2c = fq2_list[2]; fq2d = fq2_list[3];
+
+        # fq2 op fq2
+        assert fq2a+fq2b == fq2_res_list[0]
+        assert fq2a+fq2c == fq2_res_list[1]
+        assert fq2a+fq2d == fq2_res_list[2]
+        assert fq2b+fq2c == fq2_res_list[3]
+        assert fq2b+fq2d == fq2_res_list[4]
+        assert fq2c+fq2d == fq2_res_list[5]
+
+        assert fq2a*fq2b == fq2_res_list[6]
+        assert fq2a*fq2c == fq2_res_list[7]
+        assert fq2a*fq2d == fq2_res_list[8]
+        assert fq2b*fq2c == fq2_res_list[9]
+        assert fq2b*fq2d == fq2_res_list[10]
+        assert fq2c*fq2d == fq2_res_list[11]
+
+        assert fq2a-fq2b == fq2_res_list[12]
+        assert fq2a-fq2c == fq2_res_list[13]
+        assert fq2a-fq2d == fq2_res_list[14]
+        assert fq2b-fq2c == fq2_res_list[15]
+        assert fq2b-fq2d == fq2_res_list[16]
+        assert fq2c-fq2d == fq2_res_list[17]
+
+        # fq op fq2
+        assert fqa+fq2b == fq2_res_list[18]
+        assert fqa+fq2c == fq2_res_list[19]
+        assert fqa+fq2d == fq2_res_list[20]
+        assert fqb+fq2c == fq2_res_list[21]
+        assert fqb+fq2d == fq2_res_list[22]
+        assert fqc+fq2d == fq2_res_list[23]
+
+        assert fqa*fq2b == fq2_res_list[24]
+        assert fqa*fq2c == fq2_res_list[25]
+        assert fqa*fq2d == fq2_res_list[26]
+        assert fqb*fq2c == fq2_res_list[27]
+        assert fqb*fq2d == fq2_res_list[28]
+        assert fqc*fq2d == fq2_res_list[29]
+
+        assert fqa-fq2b == fq2_res_list[30]
+        assert fqa-fq2c == fq2_res_list[31]
+        assert fqa-fq2d == fq2_res_list[32]
+        assert fqb-fq2c == fq2_res_list[33]
+        assert fqb-fq2d == fq2_res_list[34]
+        assert fqc-fq2d == fq2_res_list[35]
+
+        # fq2 op fq
+        assert fq2a+fqb == fq2_res_list[36]
+        assert fq2a+fqc == fq2_res_list[37]
+        assert fq2a+fqd == fq2_res_list[38]
+        assert fq2b+fqc == fq2_res_list[39]
+        assert fq2b+fqd == fq2_res_list[40]
+        assert fq2c+fqd == fq2_res_list[41]
+
+        assert fq2a*fqb == fq2_res_list[42]
+        assert fq2a*fqc == fq2_res_list[43]
+        assert fq2a*fqd == fq2_res_list[44]
+        assert fq2b*fqc == fq2_res_list[45]
+        assert fq2b*fqd == fq2_res_list[46]
+        assert fq2c*fqd == fq2_res_list[47]
+
+        assert fq2a-fqb == fq2_res_list[48]
+        assert fq2a-fqc == fq2_res_list[49]
+        assert fq2a-fqd == fq2_res_list[50]
+        assert fq2b-fqc == fq2_res_list[51]
+        assert fq2b-fqd == fq2_res_list[52]
+        assert fq2c-fqd == fq2_res_list[53]
+
+        # int op fq2
+        assert a+fq2b == fq2_res_list[18]
+        assert a+fq2c == fq2_res_list[19]
+        assert a+fq2d == fq2_res_list[20]
+        assert b+fq2c == fq2_res_list[21]
+        assert b+fq2d == fq2_res_list[22]
+        assert c+fq2d == fq2_res_list[23]
+
+        assert a*fq2b == fq2_res_list[24]
+        assert a*fq2c == fq2_res_list[25]
+        assert a*fq2d == fq2_res_list[26]
+        assert b*fq2c == fq2_res_list[27]
+        assert b*fq2d == fq2_res_list[28]
+        assert c*fq2d == fq2_res_list[29]
+
+        assert a-fq2b == fq2_res_list[30]
+        assert a-fq2c == fq2_res_list[31]
+        assert a-fq2d == fq2_res_list[32]
+        assert b-fq2c == fq2_res_list[33]
+        assert b-fq2d == fq2_res_list[34]
+        assert c-fq2d == fq2_res_list[35]
+
+        # fq2 op int
+        assert fq2a+b == fq2_res_list[36]
+        assert fq2a+c == fq2_res_list[37]
+        assert fq2a+d == fq2_res_list[38]
+        assert fq2b+c == fq2_res_list[39]
+        assert fq2b+d == fq2_res_list[40]
+        assert fq2c+d == fq2_res_list[41]
+
+        assert fq2a*b == fq2_res_list[42]
+        assert fq2a*c == fq2_res_list[43]
+        assert fq2a*d == fq2_res_list[44]
+        assert fq2b*c == fq2_res_list[45]
+        assert fq2b*d == fq2_res_list[46]
+        assert fq2c*d == fq2_res_list[47]
+
+        assert fq2a-b == fq2_res_list[48]
+        assert fq2a-c == fq2_res_list[49]
+        assert fq2a-d == fq2_res_list[50]
+        assert fq2b-c == fq2_res_list[51]
+        assert fq2b-d == fq2_res_list[52]
+        assert fq2c-d == fq2_res_list[53]
+
+        # op fq2
+        assert -fq2a == fq2_res_list[54]
+        assert -(-fq2a) == fq2a
+        assert -fq2b == fq2_res_list[55]
+        assert -(-fq2b) == fq2b
+        assert ~fq2a == fq2_res_list[56]
+        assert ~(~fq2a) == fq2a
+        assert ~fq2b == fq2_res_list[57]
+        assert ~(~fq2b) == fq2b
+
+    def test_fq6(self):
+        a = int(fq_list[0]); b = int(fq_list[1]);
+        c = int(fq_list[2]); d = int(fq_list[3]);
+        fqa = fq_list[0]; fqb = fq_list[1];
+        fqc = fq_list[2]; fqd = fq_list[3];
+        fq2a = fq2_list[0]; fq2b = fq2_list[1]
+        fq2c = fq2_list[2]; fq2d = fq2_list[3];
+        fq6a = fq6_list[0]; fq6b = fq6_list[1]
+        fq6c = fq6_list[2]; fq6d = fq6_list[3];
+
+        # fq6 op fq6
+        assert fq6a+fq6b == fq6_res_list[0]
+        assert fq6a+fq6c == fq6_res_list[1]
+        assert fq6a+fq6d == fq6_res_list[2]
+        assert fq6b+fq6c == fq6_res_list[3]
+        assert fq6b+fq6d == fq6_res_list[4]
+        assert fq6c+fq6d == fq6_res_list[5]
+
+        assert fq6a*fq6b == fq6_res_list[6]
+        assert fq6a*fq6c == fq6_res_list[7]
+        assert fq6a*fq6d == fq6_res_list[8]
+        assert fq6b*fq6c == fq6_res_list[9]
+        assert fq6b*fq6d == fq6_res_list[10]
+        assert fq6c*fq6d == fq6_res_list[11]
+
+        assert fq6a-fq6b == fq6_res_list[12]
+        assert fq6a-fq6c == fq6_res_list[13]
+        assert fq6a-fq6d == fq6_res_list[14]
+        assert fq6b-fq6c == fq6_res_list[15]
+        assert fq6b-fq6d == fq6_res_list[16]
+        assert fq6c-fq6d == fq6_res_list[17]
+
+        # fq2 op fq6
+        assert fq2a+fq6b == fq6_res_list[18]
+        assert fq2a+fq6c == fq6_res_list[19]
+        assert fq2a+fq6d == fq6_res_list[20]
+        assert fq2b+fq6c == fq6_res_list[21]
+        assert fq2b+fq6d == fq6_res_list[22]
+        assert fq2c+fq6d == fq6_res_list[23]
+
+        assert fq2a*fq6b == fq6_res_list[24]
+        assert fq2a*fq6c == fq6_res_list[25]
+        assert fq2a*fq6d == fq6_res_list[26]
+        assert fq2b*fq6c == fq6_res_list[27]
+        assert fq2b*fq6d == fq6_res_list[28]
+        assert fq2c*fq6d == fq6_res_list[29]
+
+        assert fq2a-fq6b == fq6_res_list[30]
+        assert fq2a-fq6c == fq6_res_list[31]
+        assert fq2a-fq6d == fq6_res_list[32]
+        assert fq2b-fq6c == fq6_res_list[33]
+        assert fq2b-fq6d == fq6_res_list[34]
+        assert fq2c-fq6d == fq6_res_list[35]
+
+        # fq6 op fq2
+        assert fq6a+fq2b == fq6_res_list[36]
+        assert fq6a+fq2c == fq6_res_list[37]
+        assert fq6a+fq2d == fq6_res_list[38]
+        assert fq6b+fq2c == fq6_res_list[39]
+        assert fq6b+fq2d == fq6_res_list[40]
+        assert fq6c+fq2d == fq6_res_list[41]
+
+        assert fq6a*fq2b == fq6_res_list[42]
+        assert fq6a*fq2c == fq6_res_list[43]
+        assert fq6a*fq2d == fq6_res_list[44]
+        assert fq6b*fq2c == fq6_res_list[45]
+        assert fq6b*fq2d == fq6_res_list[46]
+        assert fq6c*fq2d == fq6_res_list[47]
+
+        assert fq6a-fq2b == fq6_res_list[48]
+        assert fq6a-fq2c == fq6_res_list[49]
+        assert fq6a-fq2d == fq6_res_list[50]
+        assert fq6b-fq2c == fq6_res_list[51]
+        assert fq6b-fq2d == fq6_res_list[52]
+        assert fq6c-fq2d == fq6_res_list[53]
+
+        # fq op fq6
+        assert fqa+fq6b == fq6_res_list[54]
+        assert fqa+fq6c == fq6_res_list[55]
+        assert fqa+fq6d == fq6_res_list[56]
+        assert fqb+fq6c == fq6_res_list[57]
+        assert fqb+fq6d == fq6_res_list[58]
+        assert fqc+fq6d == fq6_res_list[59]
+
+        assert fqa*fq6b == fq6_res_list[60]
+        assert fqa*fq6c == fq6_res_list[61]
+        assert fqa*fq6d == fq6_res_list[62]
+        assert fqb*fq6c == fq6_res_list[63]
+        assert fqb*fq6d == fq6_res_list[64]
+        assert fqc*fq6d == fq6_res_list[65]
+
+        assert fqa-fq6b == fq6_res_list[66]
+        assert fqa-fq6c == fq6_res_list[67]
+        assert fqa-fq6d == fq6_res_list[68]
+        assert fqb-fq6c == fq6_res_list[69]
+        assert fqb-fq6d == fq6_res_list[70]
+        assert fqc-fq6d == fq6_res_list[71]
+
+        # fq6 op fq
+        assert fq6a+fqb == fq6_res_list[72]
+        assert fq6a+fqc == fq6_res_list[73]
+        assert fq6a+fqd == fq6_res_list[74]
+        assert fq6b+fqc == fq6_res_list[75]
+        assert fq6b+fqd == fq6_res_list[76]
+        assert fq6c+fqd == fq6_res_list[77]
+
+        assert fq6a*fqb == fq6_res_list[78]
+        assert fq6a*fqc == fq6_res_list[79]
+        assert fq6a*fqd == fq6_res_list[80]
+        assert fq6b*fqc == fq6_res_list[81]
+        assert fq6b*fqd == fq6_res_list[82]
+        assert fq6c*fqd == fq6_res_list[83]
+
+        assert fq6a-fqb == fq6_res_list[84]
+        assert fq6a-fqc == fq6_res_list[85]
+        assert fq6a-fqd == fq6_res_list[86]
+        assert fq6b-fqc == fq6_res_list[87]
+        assert fq6b-fqd == fq6_res_list[88]
+        assert fq6c-fqd == fq6_res_list[89]
+
+        # int op fq6
+        assert a+fq6b == fq6_res_list[54]
+        assert a+fq6c == fq6_res_list[55]
+        assert a+fq6d == fq6_res_list[56]
+        assert b+fq6c == fq6_res_list[57]
+        assert b+fq6d == fq6_res_list[58]
+        assert c+fq6d == fq6_res_list[59]
+
+        assert a*fq6b == fq6_res_list[60]
+        assert a*fq6c == fq6_res_list[61]
+        assert a*fq6d == fq6_res_list[62]
+        assert b*fq6c == fq6_res_list[63]
+        assert b*fq6d == fq6_res_list[64]
+        assert c*fq6d == fq6_res_list[65]
+
+        assert a-fq6b == fq6_res_list[66]
+        assert a-fq6c == fq6_res_list[67]
+        assert a-fq6d == fq6_res_list[68]
+        assert b-fq6c == fq6_res_list[69]
+        assert b-fq6d == fq6_res_list[70]
+        assert c-fq6d == fq6_res_list[71]
+
+        # fq6 op int
+        assert fq6a+b == fq6_res_list[72]
+        assert fq6a+c == fq6_res_list[73]
+        assert fq6a+d == fq6_res_list[74]
+        assert fq6b+c == fq6_res_list[75]
+        assert fq6b+d == fq6_res_list[76]
+        assert fq6c+d == fq6_res_list[77]
+
+        assert fq6a*b == fq6_res_list[78]
+        assert fq6a*c == fq6_res_list[79]
+        assert fq6a*d == fq6_res_list[80]
+        assert fq6b*c == fq6_res_list[81]
+        assert fq6b*d == fq6_res_list[82]
+        assert fq6c*d == fq6_res_list[83]
+
+        assert fq6a-b == fq6_res_list[84]
+        assert fq6a-c == fq6_res_list[85]
+        assert fq6a-d == fq6_res_list[86]
+        assert fq6b-c == fq6_res_list[87]
+        assert fq6b-d == fq6_res_list[88]
+        assert fq6c-d == fq6_res_list[89]
+
+        # op fq6
+        assert -fq6a == fq6_res_list[90]
+        assert -(-fq6a) == fq6a
+        assert -fq6b == fq6_res_list[91]
+        assert -(-fq6b) == fq6b
+        assert ~fq6a == fq6_res_list[92]
+        assert ~(~fq6a) == fq6a
+        assert ~fq6b == fq6_res_list[93]
+        assert ~(~fq6b) == fq6b
+
+    def test_fq12(self):
+        a = int(fq_list[0]); b = int(fq_list[1]);
+        c = int(fq_list[2]); d = int(fq_list[3]);
+        fqa = fq_list[0]; fqb = fq_list[1];
+        fqc = fq_list[2]; fqd = fq_list[3];
+        fq2a = fq2_list[0]; fq2b = fq2_list[1]
+        fq2c = fq2_list[2]; fq2d = fq2_list[3];
+        fq6a = fq6_list[0]; fq6b = fq6_list[1]
+        fq6c = fq6_list[2]; fq6d = fq6_list[3];
+        fq12a = fq12_list[0]; fq12b = fq12_list[1]
+        fq12c = fq12_list[2]; fq12d = fq12_list[3];
+
+        # fq12 op fq12
+        assert fq12a+fq12b == fq12_res_list[0]
+        assert fq12a+fq12c == fq12_res_list[1]
+        assert fq12a+fq12d == fq12_res_list[2]
+        assert fq12b+fq12c == fq12_res_list[3]
+        assert fq12b+fq12d == fq12_res_list[4]
+        assert fq12c+fq12d == fq12_res_list[5]
+
+        assert fq12a*fq12b == fq12_res_list[6]
+        assert fq12a*fq12c == fq12_res_list[7]
+        assert fq12a*fq12d == fq12_res_list[8]
+        assert fq12b*fq12c == fq12_res_list[9]
+        assert fq12b*fq12d == fq12_res_list[10]
+        assert fq12c*fq12d == fq12_res_list[11]
+
+        assert fq12a-fq12b == fq12_res_list[12]
+        assert fq12a-fq12c == fq12_res_list[13]
+        assert fq12a-fq12d == fq12_res_list[14]
+        assert fq12b-fq12c == fq12_res_list[15]
+        assert fq12b-fq12d == fq12_res_list[16]
+        assert fq12c-fq12d == fq12_res_list[17]
+
+        # fq6 op fq12
+        assert fq6a+fq12b == fq12_res_list[18]
+        assert fq6a+fq12c == fq12_res_list[19]
+        assert fq6a+fq12d == fq12_res_list[20]
+        assert fq6b+fq12c == fq12_res_list[21]
+        assert fq6b+fq12d == fq12_res_list[22]
+        assert fq6c+fq12d == fq12_res_list[23]
+
+        assert fq6a*fq12b == fq12_res_list[24]
+        assert fq6a*fq12c == fq12_res_list[25]
+        assert fq6a*fq12d == fq12_res_list[26]
+        assert fq6b*fq12c == fq12_res_list[27]
+        assert fq6b*fq12d == fq12_res_list[28]
+        assert fq6c*fq12d == fq12_res_list[29]
+
+        assert fq6a-fq12b == fq12_res_list[30]
+        assert fq6a-fq12c == fq12_res_list[31]
+        assert fq6a-fq12d == fq12_res_list[32]
+        assert fq6b-fq12c == fq12_res_list[33]
+        assert fq6b-fq12d == fq12_res_list[34]
+        assert fq6c-fq12d == fq12_res_list[35]
+
+        # fq12 op fq6
+        assert fq12a+fq6b == fq12_res_list[36]
+        assert fq12a+fq6c == fq12_res_list[37]
+        assert fq12a+fq6d == fq12_res_list[38]
+        assert fq12b+fq6c == fq12_res_list[39]
+        assert fq12b+fq6d == fq12_res_list[40]
+        assert fq12c+fq6d == fq12_res_list[41]
+
+        assert fq12a*fq6b == fq12_res_list[42]
+        assert fq12a*fq6c == fq12_res_list[43]
+        assert fq12a*fq6d == fq12_res_list[44]
+        assert fq12b*fq6c == fq12_res_list[45]
+        assert fq12b*fq6d == fq12_res_list[46]
+        assert fq12c*fq6d == fq12_res_list[47]
+
+        assert fq12a-fq6b == fq12_res_list[48]
+        assert fq12a-fq6c == fq12_res_list[49]
+        assert fq12a-fq6d == fq12_res_list[50]
+        assert fq12b-fq6c == fq12_res_list[51]
+        assert fq12b-fq6d == fq12_res_list[52]
+        assert fq12c-fq6d == fq12_res_list[53]
+
+        # fq2 op fq12
+        assert fq2a+fq12b == fq12_res_list[54]
+        assert fq2a+fq12c == fq12_res_list[55]
+        assert fq2a+fq12d == fq12_res_list[56]
+        assert fq2b+fq12c == fq12_res_list[57]
+        assert fq2b+fq12d == fq12_res_list[58]
+        assert fq2c+fq12d == fq12_res_list[59]
+
+        assert fq2a*fq12b == fq12_res_list[60]
+        assert fq2a*fq12c == fq12_res_list[61]
+        assert fq2a*fq12d == fq12_res_list[62]
+        assert fq2b*fq12c == fq12_res_list[63]
+        assert fq2b*fq12d == fq12_res_list[64]
+        assert fq2c*fq12d == fq12_res_list[65]
+
+        assert fq2a-fq12b == fq12_res_list[66]
+        assert fq2a-fq12c == fq12_res_list[67]
+        assert fq2a-fq12d == fq12_res_list[68]
+        assert fq2b-fq12c == fq12_res_list[69]
+        assert fq2b-fq12d == fq12_res_list[70]
+        assert fq2c-fq12d == fq12_res_list[71]
+
+        # fq12 op fq2
+        assert fq12a+fq2b == fq12_res_list[72]
+        assert fq12a+fq2c == fq12_res_list[73]
+        assert fq12a+fq2d == fq12_res_list[74]
+        assert fq12b+fq2c == fq12_res_list[75]
+        assert fq12b+fq2d == fq12_res_list[76]
+        assert fq12c+fq2d == fq12_res_list[77]
+
+        assert fq12a*fq2b == fq12_res_list[78]
+        assert fq12a*fq2c == fq12_res_list[79]
+        assert fq12a*fq2d == fq12_res_list[80]
+        assert fq12b*fq2c == fq12_res_list[81]
+        assert fq12b*fq2d == fq12_res_list[82]
+        assert fq12c*fq2d == fq12_res_list[83]
+
+        assert fq12a-fq2b == fq12_res_list[84]
+        assert fq12a-fq2c == fq12_res_list[85]
+        assert fq12a-fq2d == fq12_res_list[86]
+        assert fq12b-fq2c == fq12_res_list[87]
+        assert fq12b-fq2d == fq12_res_list[88]
+        assert fq12c-fq2d == fq12_res_list[89]
+
+        # fq op fq12
+        assert fqa+fq12b == fq12_res_list[90]
+        assert fqa+fq12c == fq12_res_list[91]
+        assert fqa+fq12d == fq12_res_list[92]
+        assert fqb+fq12c == fq12_res_list[93]
+        assert fqb+fq12d == fq12_res_list[94]
+        assert fqc+fq12d == fq12_res_list[95]
+
+        assert fqa*fq12b == fq12_res_list[96]
+        assert fqa*fq12c == fq12_res_list[97]
+        assert fqa*fq12d == fq12_res_list[98]
+        assert fqb*fq12c == fq12_res_list[99]
+        assert fqb*fq12d == fq12_res_list[100]
+        assert fqc*fq12d == fq12_res_list[101]
+
+        assert fqa-fq12b == fq12_res_list[102]
+        assert fqa-fq12c == fq12_res_list[103]
+        assert fqa-fq12d == fq12_res_list[104]
+        assert fqb-fq12c == fq12_res_list[105]
+        assert fqb-fq12d == fq12_res_list[106]
+        assert fqc-fq12d == fq12_res_list[107]
+
+        # fq12 op fq
+        assert fq12a+fqb == fq12_res_list[108]
+        assert fq12a+fqc == fq12_res_list[109]
+        assert fq12a+fqd == fq12_res_list[110]
+        assert fq12b+fqc == fq12_res_list[111]
+        assert fq12b+fqd == fq12_res_list[112]
+        assert fq12c+fqd == fq12_res_list[113]
+
+        assert fq12a*fqb == fq12_res_list[114]
+        assert fq12a*fqc == fq12_res_list[115]
+        assert fq12a*fqd == fq12_res_list[116]
+        assert fq12b*fqc == fq12_res_list[117]
+        assert fq12b*fqd == fq12_res_list[118]
+        assert fq12c*fqd == fq12_res_list[119]
+
+        assert fq12a-fqb == fq12_res_list[120]
+        assert fq12a-fqc == fq12_res_list[121]
+        assert fq12a-fqd == fq12_res_list[122]
+        assert fq12b-fqc == fq12_res_list[123]
+        assert fq12b-fqd == fq12_res_list[124]
+        assert fq12c-fqd == fq12_res_list[125]
+
+        # int op fq12
+        assert a+fq12b == fq12_res_list[90]
+        assert a+fq12c == fq12_res_list[91]
+        assert a+fq12d == fq12_res_list[92]
+        assert b+fq12c == fq12_res_list[93]
+        assert b+fq12d == fq12_res_list[94]
+        assert c+fq12d == fq12_res_list[95]
+
+        assert a*fq12b == fq12_res_list[96]
+        assert a*fq12c == fq12_res_list[97]
+        assert a*fq12d == fq12_res_list[98]
+        assert b*fq12c == fq12_res_list[99]
+        assert b*fq12d == fq12_res_list[100]
+        assert c*fq12d == fq12_res_list[101]
+
+        assert a-fq12b == fq12_res_list[102]
+        assert a-fq12c == fq12_res_list[103]
+        assert a-fq12d == fq12_res_list[104]
+        assert b-fq12c == fq12_res_list[105]
+        assert b-fq12d == fq12_res_list[106]
+        assert c-fq12d == fq12_res_list[107]
+
+        # fq12 op int
+        assert fq12a+b == fq12_res_list[108]
+        assert fq12a+c == fq12_res_list[109]
+        assert fq12a+d == fq12_res_list[110]
+        assert fq12b+c == fq12_res_list[111]
+        assert fq12b+d == fq12_res_list[112]
+        assert fq12c+d == fq12_res_list[113]
+
+        assert fq12a*b == fq12_res_list[114]
+        assert fq12a*c == fq12_res_list[115]
+        assert fq12a*d == fq12_res_list[116]
+        assert fq12b*c == fq12_res_list[117]
+        assert fq12b*d == fq12_res_list[118]
+        assert fq12c*d == fq12_res_list[119]
+
+        assert fq12a-b == fq12_res_list[120]
+        assert fq12a-c == fq12_res_list[121]
+        assert fq12a-d == fq12_res_list[122]
+        assert fq12b-c == fq12_res_list[123]
+        assert fq12b-d == fq12_res_list[124]
+        assert fq12c-d == fq12_res_list[125]
+
+        # op fq12
+        assert -fq12a == fq12_res_list[126]
+        assert -(-fq12a) == fq12a
+        assert -fq12b == fq12_res_list[127]
+        assert -(-fq12b) == fq12b
+        assert ~fq12a == fq12_res_list[128]
+        assert ~(~fq12a) == fq12a
+        assert ~fq12b == fq12_res_list[129]
+        assert ~(~fq6b) == fq6b
 
 
 """
