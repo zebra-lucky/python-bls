@@ -1,8 +1,8 @@
+import logging
 from collections import namedtuple
 
 from . import bls12381
-from .ec import untwist
-from .fields import Fq12, FQ12_ONE_TUPLE, fq12_mul_fq12
+from .fields import Fq, Fq2, Fq12
 
 
 # Struct for elliptic curve parameters
@@ -13,28 +13,20 @@ default_ec = EC(*bls12381.parameters())
 default_ec_twist = EC(*bls12381.parameters())
 
 
-def int_to_bits(i):
-    if i < 1:
-        return [0]
-    bits = []
-    while i != 0:
-        bits.append(i % 2)
-        i = i // 2
-    return list(reversed(bits))
-
-
 def double_line_eval(R, P, ec=default_ec):
     """
     Creates an equation for a line tangent to R,
     and evaluates this at the point P. f(x) = y - sv - v.
     f(P).
     """
-    R12 = untwist(R)
-
-    slope = (3 * pow(R12.x, 2) + ec.a) / (2 * R12.y)
-    v = R12.y - slope * R12.x
-
-    return P.y - P.x * slope - v
+    Q = ec.q
+    rx = R.x
+    ry = R.y
+    px = P.x
+    py = P.y
+    if type(rx) != Fq2 or type(px) != Fq:
+        raise Exception("invalid elements")
+    return Fq12(Q, fq2_double_line_eval(rx.ZT, ry.ZT, px.Z, py.Z))
 
 
 def add_line_eval(R, Q, P, ec=default_ec):
@@ -43,64 +35,49 @@ def add_line_eval(R, Q, P, ec=default_ec):
     and evaluates this at the point P. f(x) = y - sv - v.
     f(P).
     """
-    R12 = untwist(R)
-    Q12 = untwist(Q)
+    rx = R.x
+    ry = R.y
+    qx = Q.x
+    qy = Q.y
+    px = P.x
+    py = P.y
+    if type(rx) != Fq2 or type(qx) != Fq2 or type(px) != Fq:
+        raise Exception("invalid elements")
+    Q = ec.q
+    return Fq12(Q, fq2_add_line_eval(rx.ZT, ry.ZT, qx.ZT, qy.ZT,
+                                     px.Z, py.Z))
 
-    # This is the case of a vertical line, where the denominator
-    # will be 0.
-    if R12 == Q12.negate():
-        return P.x - R12.x
 
-    slope = (Q12.y - R12.y) / (Q12.x - R12.x)
-    v = (Q12.y * R12.x - R12.y * Q12.x) / (R12.x - Q12.x)
-
-    return P.y - P.x * slope - v
-
-
-def miller_loop(T, P, Q, ec=default_ec):
+def miller_loop(P, Q, ec=default_ec):
     """
     Performs a double and add algorithm for the ate pairing. This algorithm
     is taken from Craig Costello's "Pairing for Beginners".
     """
-    T_bits = int_to_bits(T)
-    R = Q
-    f = FQ12_ONE_TUPLE
-    for i in range(1, len(T_bits)):
-        # Compute sloped line lrr
-        lrr = double_line_eval(R, P, ec)
-        f = fq12_mul_fq12(ec.q, f, f)
-        f = fq12_mul_fq12(ec.q, f, lrr.ZT)
-
-        R = 2 * R
-        if T_bits[i] == 1:
-            # Compute sloped line lrq
-            lrq = add_line_eval(R, Q, P, ec)
-            f = fq12_mul_fq12(ec.q, f, lrq.ZT)
-            R = R + Q
-    return Fq12(ec.q, f)
+    px = P.x
+    py = P.y
+    pinf = P.infinity
+    qx = Q.x
+    qy = Q.y
+    qinf = Q.infinity
+    if type(px) != Fq or type(qx) != Fq2:
+        raise Exception("invalid elements")
+    Q = ec.q
+    return Fq12(Q, fq_miller_loop(px.Z, py.Z, pinf, qx.ZT, qy.ZT, qinf))
 
 
-def final_exponentiation(element, ec=default_ec):
+def final_exponentiation(element, ec):
     """
-    Performs a final exponentiation to map the result of the miller
-    loop to a unique element of Fq12.
+    Performs a final exponentiation on bls12-381 curve to map
+    the result of the miller loop to a unique element of Fq12.
     """
-    if ec.k == 12:
-        ans = pow(element, (pow(ec.q, 4) - pow(ec.q, 2) + 1) // ec.n)
-        ans = ans.qi_power(2) * ans
-        ans = ans.qi_power(6) / ans
-        return ans
-    else:
-        return pow(element, (pow(ec.q, ec.k) - 1) // ec.n)
+    return Fq12(ec.q, fq12_final_exp(element.ZT))
 
 
 def ate_pairing(P, Q, ec=default_ec):
     """
     Performs one ate pairing.
     """
-    t = default_ec.x + 1
-    T = abs(t - 1)
-    element = miller_loop(T, P, Q, ec)
+    element = miller_loop(P, Q, ec)
     return final_exponentiation(element, ec)
 
 
@@ -110,13 +87,17 @@ def ate_pairing_multi(Ps, Qs, ec=default_ec):
     since we can multiply all the results of the miller loops,
     and perform just one final exponentiation.
     """
-    t = default_ec.x + 1
-    T = abs(t - 1)
-    prod = FQ12_ONE_TUPLE
-    for i in range(len(Qs)):
-        ml_res = miller_loop(T, Ps[i], Qs[i], ec)
-        prod = fq12_mul_fq12(ec.q, prod, ml_res.ZT)
-    return final_exponentiation(Fq12(ec.q, prod), ec)
+    Ps = tuple((ps.x.Z, ps.y.Z, ps.infinity) for ps in Ps)
+    Qs = tuple((qs.x.ZT, qs.y.ZT, qs.infinity) for qs in Qs)
+    return Fq12(ec.q, fq_ate_pairing_multi(Ps, Qs))
+
+
+try:
+    from .fields_t import (fq12_final_exp, fq2_double_line_eval,
+                           fq2_add_line_eval, fq_miller_loop,
+                           fq_ate_pairing_multi)
+except ImportError as e:
+    logging.error(f'Can not import from fields_t_c: {e}')
 
 
 """

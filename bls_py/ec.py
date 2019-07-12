@@ -1,11 +1,9 @@
+import logging
 from collections import namedtuple
 from copy import deepcopy
 
 from . import bls12381
-from .fields import (FieldExtBase, Fq, Fq2, Fq6, Fq12,
-                     fq2_add_fq, fq2_sub_fq, fq2_mul_fq2, fq2_mul_fq,
-                     fq_sub_fq2, fq2_add_fq2, fq2_sub_fq2, fq12_mul_fq12,
-                     fq12_mul_fq2, fq12_mul_fq, fq12_add_fq12, fq12_sub_fq12)
+from .fields import Fq, Fq2, Fq12
 from .util import hash256, hash512
 
 
@@ -19,13 +17,15 @@ default_ec_twist = EC(*bls12381.parameters_twist())
 
 class AffinePoint:
     """
-    Elliptic curve point, can represent any curve, and use Fq or Fq2
-    coordinates.
+    Elliptic curve point, can represent only bls12-381 curve (a=0 or a=0,0
+    for twisted curve), and use Fq, Fq2 or Fq12 coordinates.
     """
     def __init__(self, x, y, infinity, ec=default_ec):
-        if (not isinstance(x, Fq) and not isinstance(x, FieldExtBase) or
-           (not isinstance(y, Fq) and not isinstance(y, FieldExtBase)) or
-           type(x) != type(y)):
+        type_x = type(x)
+        type_y = type(y)
+        if (type_x != type_y
+                or not type_x in (Fq, Fq2, Fq12)
+                or not type_y in (Fq, Fq2, Fq12)):
             raise Exception("x,y should be field elements")
         self.FE = type(x)
         self.x = x
@@ -37,17 +37,12 @@ class AffinePoint:
         """
         Check that y^2 = x^3 + ax + b
         """
-        if self.infinity:
-            return True
-        left = self.y * self.y
-        right = self.x * self.x * self.x + self.ec.a * self.x + self.ec.b
-
-        return left == right
+        return is_on_curve_affine(self, self.ec, self.FE)
 
     def __add__(self, other):
         if other == 0:
             return self
-        if not isinstance(other, AffinePoint):
+        if not type(other) == AffinePoint:
             raise Exception("Incorrect object")
 
         return add_points(self, other, self.ec, self.FE)
@@ -72,7 +67,7 @@ class AffinePoint:
                 ", i=" + str(self.infinity) + ")\n")
 
     def __eq__(self, other):
-        if not isinstance(other, AffinePoint):
+        if not type(other) == AffinePoint:
             return False
         return (self.x == other.x and
                 self.y == other.y and
@@ -82,7 +77,7 @@ class AffinePoint:
         return not self.__eq__(other)
 
     def __mul__(self, c):
-        if not isinstance(c, (Fq, int)):
+        if not type(c) in (Fq, int):
             raise ValueError("Error, must be int or Fq")
         return scalar_mult_jacobian(c, self.to_jacobian(), self.ec).to_affine()
 
@@ -93,8 +88,7 @@ class AffinePoint:
         return self.__mul__(c)
 
     def to_jacobian(self):
-        return JacobianPoint(self.x, self.y, self.FE.one(self.ec.q),
-                             self.infinity, self.ec)
+        return to_jacobian(self, self.ec, self.FE)
 
     # Lexicographically greater than the negation
     def lex_gt_neg(self):
@@ -125,14 +119,17 @@ class AffinePoint:
 
 class JacobianPoint:
     """
-    Elliptic curve point, can represent any curve, and use Fq or Fq2
-    coordinates. Uses Jacobian coordinates so that point addition
-    does not require slow inversion.
+    Elliptic curve point, can represent only bls12-381 curve (a=0 or a=0,0
+    for twisted curve), and use Fq, Fq2 or Fq12 coordinates. Uses Jacobian
+    coordinates so that point addition does not require slow inversion.
     """
     def __init__(self, x, y, z, infinity, ec=default_ec):
-        if (not isinstance(x, Fq) and not isinstance(x, FieldExtBase) or
-           (not isinstance(y, Fq) and not isinstance(y, FieldExtBase)) or
-           (not isinstance(z, Fq) and not isinstance(z, FieldExtBase))):
+        type_x = type(x)
+        type_y = type(y)
+        type_z = type(z)
+        if (type_x not in (Fq, Fq2, Fq12)
+                or type_y not in (Fq, Fq2, Fq12)
+                or type_z not in (Fq, Fq2, Fq12)):
             raise Exception("x,y should be field elements")
         self.FE = type(x)
         self.x = x
@@ -142,14 +139,12 @@ class JacobianPoint:
         self.ec = ec
 
     def is_on_curve(self):
-        if self.infinity:
-            return True
-        return self.to_affine().is_on_curve()
+        return is_on_curve_jacobian(self, self.ec, self.FE)
 
     def __add__(self, other):
         if other == 0:
             return self
-        if not isinstance(other, JacobianPoint):
+        if not type(other) == JacobianPoint:
             raise ValueError("Incorrect object")
 
         return add_points_jacobian(self, other, self.ec, self.FE)
@@ -164,7 +159,7 @@ class JacobianPoint:
                 ", i=" + str(self.infinity) + ")\n")
 
     def __eq__(self, other):
-        if not isinstance(other, JacobianPoint):
+        if not type(other) == JacobianPoint:
             return False
         return self.to_affine() == other.to_affine()
 
@@ -172,7 +167,7 @@ class JacobianPoint:
         return not self.__eq__(other)
 
     def __mul__(self, c):
-        if not isinstance(c, (Fq, int)):
+        if not type(c) in (Fq, int):
             raise ValueError("Error, must be int or Fq")
         return scalar_mult_jacobian(c, self, self.ec)
 
@@ -180,12 +175,7 @@ class JacobianPoint:
         return self.__mul__(c)
 
     def to_affine(self):
-        if self.infinity:
-            return AffinePoint(Fq.zero(self.ec.q), Fq.zero(self.ec.q),
-                               self.infinity, self.ec)
-        new_x = self.x / pow(self.z, 2)
-        new_y = self.y / pow(self.z, 3)
-        return AffinePoint(new_x, new_y, self.infinity, self.ec)
+        return to_affine(self, self.ec, self.FE)
 
     def serialize(self):
         return self.to_affine().serialize()
@@ -198,14 +188,80 @@ class JacobianPoint:
                              self.ec)
 
 
+def is_on_curve_affine(p, ec, FE):
+    Q = ec.q
+    px = p.x
+    py = p.y
+    pinf = p.infinity
+    if FE == Fq:
+        return fq_is_on_curve_affine(px.Z, py.Z, pinf)
+    elif FE == Fq2:
+        return fq2_is_on_curve_affine(px.ZT, py.ZT, pinf)
+    elif FE == Fq12:
+        return fq12_is_on_curve_affine(px.ZT, py.ZT, pinf)
+    else:
+        raise ValueError('FE must be Fq, Fq2 or Fq12')
+
+
+def is_on_curve_jacobian(p, ec, FE):
+    Q = ec.q
+    px = p.x
+    py = p.y
+    pz = p.z
+    pinf = p.infinity
+    if FE == Fq:
+        return fq_is_on_curve_jacobian(px.Z, py.Z, pz.Z, pinf)
+    elif FE == Fq2:
+        return fq2_is_on_curve_jacobian(px.ZT, py.ZT, pz.ZT, pinf)
+    elif FE == Fq12:
+        return fq12_is_on_curve_jacobian(px.ZT, py.ZT, pz.ZT, pinf)
+    else:
+        raise ValueError('FE must be Fq, Fq2 or Fq12')
+
+
+def to_affine(p, ec, FE):
+    Q = ec.q
+    px = p.x
+    py = p.y
+    pz = p.z
+    pinf = p.infinity
+    if FE == Fq:
+        xr, yr, infr = fq_to_affine(px.Z, py.Z, pz.Z, pinf)
+    elif FE == Fq2:
+        xr, yr, infr = fq2_to_affine(px.ZT, py.ZT, pz.ZT, pinf)
+    elif FE == Fq12:
+        xr, yr, infr = fq12_to_affine(px.ZT, py.ZT, pz.ZT, pinf)
+    else:
+        raise ValueError('FE must be Fq, Fq2 or Fq12')
+    return AffinePoint(FE(Q, xr), FE(Q, yr), infr, ec)
+
+
+def to_jacobian(p, ec, FE):
+    Q = ec.q
+    px = p.x
+    py = p.y
+    pinf = p.infinity
+    if FE == Fq:
+        xr, yr, zr, infr = fq_to_jacobian(px.Z, py.Z, pinf)
+    elif FE == Fq2:
+        xr, yr, zr, infr = fq2_to_jacobian(px.ZT, py.ZT, pinf)
+    elif FE == Fq12:
+        xr, yr, zr, infr = fq12_to_jacobian(px.ZT, py.ZT, pinf)
+    else:
+        raise ValueError('FE must be Fq, Fq2 or Fq12')
+    return JacobianPoint(FE(Q, xr), FE(Q, yr), FE(Q, zr), infr, ec)
+
+
 def y_for_x(x, ec=default_ec, FE=Fq):
     """
     Solves y = sqrt(x^3 + ax + b) for both valid ys
     """
-    if not isinstance(x, FE):
+    if not type(x) == FE:
         x = FE(ec.q, x)
 
-    u = x * x * x + ec.a * x + ec.b
+    # u = x * x * x + ec.a * x + ec.b
+    # a is 0 for bls12-381
+    u = x * x * x + ec.b
 
     y = u.modsqrt()
     if y == 0 or not AffinePoint(x, y, False, ec).is_on_curve():
@@ -213,169 +269,47 @@ def y_for_x(x, ec=default_ec, FE=Fq):
     return [y, ec.q - y]
 
 
-def double_point(p1, ec=default_ec, FE=Fq):
+def double_point(p, ec, FE):
     """
     Basic elliptic curve point doubling
     """
-    x, y = p1.x, p1.y
-    left = 3 * x * x
-    left = left + ec.a
-    s = left / (2 * y)
-    new_x = s * s - x - x
-    new_y = s * (x - new_x) - y
-    return AffinePoint(new_x, new_y, False, ec)
+    Q = ec.q
+    px = p.x
+    py = p.y
+    pinf = p.infinity
+    if FE == Fq:
+        xr, yr, infr = fq_double_point(px.Z, py.Z, pinf)
+    elif FE == Fq2:
+        xr, yr, infr = fq2_double_point(px.ZT, py.ZT, pinf)
+    elif FE == Fq12:
+        xr, yr, infr = fq12_double_point(px.ZT, py.ZT, pinf)
+    else:
+        raise ValueError('FE must be Fq, Fq2 or Fq12', FE)
+    return AffinePoint(FE(Q, xr), FE(Q, yr), infr, ec)
 
 
 def add_points(p1, p2, ec=default_ec, FE=Fq):
     """
     Basic elliptic curve point addition
     """
-    assert(p1.is_on_curve())
-    assert(p2.is_on_curve())
     if p1.infinity:
-        return p2
-    if p2.infinity:
-        return p1
-    if p1 == p2:
-        return double_point(p1, ec, FE)
-    if p1.x == p2.x:
-        return AffinePoint(FE.zero(), FE.zero(), True, ec)
-
-    x1, y1 = p1.x, p1.y
-    x2, y2 = p2.x, p2.y
-    s = (y2 - y1) / (x2 - x1)
-    new_x = s * s - x1 - x2
-    new_y = s * (x1 - new_x) - y1
-    return AffinePoint(new_x, new_y, False, ec)
-
-
-def double_point_jacobian(p1, ec=default_ec, FE=Fq):
-    """
-    Jacobian elliptic curve point doubling
-    http://www.hyperelliptic.org/EFD/oldefd/jacobian.html
-    """
-    X, Y, Z = p1.x, p1.y, p1.z
-    if Y == FE.zero(ec.q) or p1.infinity:
-        return JacobianPoint(FE.one(ec.q), FE.one(ec.q),
-                             FE.zero(ec.q), True, ec)
+        ec = p2.ec
     Q = ec.q
-    if FE == Fq2:
-        xr, yr, zr = double_point_jacobian_fq2(X.ZT, Y.ZT, Z.ZT, ec)
-        return JacobianPoint(Fq2(Q, xr), Fq2(Q, yr), Fq2(Q, zr), False, ec)
-    elif FE == Fq and ec == default_ec:
-        xr, yr, zr = double_point_jacobian_fq(X.Z, Y.Z, Z.Z, ec)
-        return JacobianPoint(Fq(Q, xr), Fq(Q, yr), Fq(Q, zr), False, ec)
-    elif FE == Fq and ec == default_ec_twist:
-        xr, yr, zr = double_point_jacobian_fq_twist(X.Z, Y.Z, Z.Z, ec)
-        return JacobianPoint(Fq2(Q, xr), Fq2(Q, yr), Fq2(Q, zr), False, ec)
+    x1 = p1.x
+    y1 = p1.y
+    inf1 = p1.infinity
+    x2 = p2.x
+    y2 = p2.y
+    inf2 = p2.infinity
+    if FE == Fq:
+        xr, yr, infr = fq_add_points(x1.Z, y1.Z, inf1, x2.Z, y2.Z, inf2)
+    elif FE == Fq2:
+        xr, yr, infr = fq2_add_points(x1.ZT, y1.ZT, inf1, x2.ZT, y2.ZT, inf2)
     elif FE == Fq12:
-        xr, yr, zr = double_point_jacobian_fq12(X.ZT, Y.ZT, Z.ZT, ec)
-        return JacobianPoint(Fq12(Q, xr), Fq12(Q, yr), Fq12(Q, zr), False, ec)
+        xr, yr, infr = fq12_add_points(x1.ZT, y1.ZT, inf1, x2.ZT, y2.ZT, inf2)
     else:
-        raise ValueError('FE must be Fq, Fq2 or Fq12')
-
-
-def double_point_jacobian_fq(X, Y, Z, ec):
-    '''dobule point with fq int X, Y, Z, returning tuple'''
-    P = ec.q
-    ec_a = ec.a.Z
-    # S = 4*X*Y^2
-    S = 4*X*Y*Y % P
-
-    Z_sq = Z*Z % P
-    Z_4th = Z_sq*Z_sq % P
-    Y_sq = Y*Y % P
-    Y_4th = Y_sq*Y_sq % P
-
-    # M = 3*X^2 + a*Z^4
-    M = (3*X*X % P + ec_a*Z_4th % P) % P
-
-    # X' = M^2 - 2*S
-    X_p = (M*M % P - 2*S % P) % P
-    # Y' = M*(S - X') - 8*Y^4
-    Y_p = (M*((S - X_p) % P) % P - 8*Y_4th % P) % P
-    # Z' = 2*Y*Z
-    Z_p = 2*Y*Z % P
-    return X_p, Y_p, Z_p
-
-
-def double_point_jacobian_fq_twist(X, Y, Z, ec):
-    '''dobule point with fq int X, Y, Z, returning tuple'''
-    P = ec.q
-    ec_a = ec.a.ZT
-    addi_f = fq2_add_fq
-    subi_f = fq2_sub_fq
-    muli_f = fq2_mul_fq
-    mul_f = fq2_mul_fq2
-
-    # S = 4*X*Y^2
-    S = 4*X*Y*Y % P
-
-    Z_sq = Z*Z % P
-    Z_4th = Z_sq*Z_sq % P
-    Y_sq = Y*Y % P
-    Y_4th = Y_sq*Y_sq % P
-
-    # M = 3*X^2 + a*Z^4
-    M = addi_f(P, muli_f(P, ec_a, Z_4th), 3*X*X % P)
-
-    # X' = M^2 - 2*S
-    X_p = subi_f(P, mul_f(P, M, M), 2*S % P)
-    # Y' = M*(S - X') - 8*Y^4
-    Y_p = subi_f(P, mul_f(P, M, fq_sub_fq2(P, S, X_p)), 8*Y_4th % P)
-    # Z' = 2*Y*Z
-    Z_p = addi_f(P, (0, 0), 2*Y*Z % P)
-    return X_p, Y_p, Z_p
-
-
-def double_point_jacobian_fq2(X, Y, Z, ec):
-    '''dobule point with fq2 tuples X, Y, Z, returning tuple of tuples'''
-    if ec == default_ec_twist:
-        mul_ec_a = fq2_mul_fq2
-        ec_a = ec.a.ZT
-    else:
-        mul_ec_a = fq2_mul_fq
-        ec_a = ec.a.Z
-    func_t = (fq2_mul_fq2, fq2_mul_fq, mul_ec_a, fq2_add_fq2, fq2_sub_fq2)
-    return double_point_jacobian_fqx_t(func_t, X, Y, Z, ec.q, ec_a)
-
-
-def double_point_jacobian_fq12(X, Y, Z, ec):
-    '''dobule point with fq12 tuples X, Y, Z, returning tuple of tuples'''
-    if ec == default_ec_twist:
-        mul_ec_a = fq12_mul_fq2
-        ec_a = ec.a.ZT
-    else:
-        mul_ec_a = fq12_mul_fq
-        ec_a = ec.a.Z
-    func_t = (fq12_mul_fq12, fq12_mul_fq, mul_ec_a,
-              fq12_add_fq12, fq12_sub_fq12)
-    return double_point_jacobian_fqx_t(func_t, X, Y, Z, ec.q, ec_a)
-
-
-def double_point_jacobian_fqx_t(func_t, X, Y, Z, P, ec_a):
-    '''dobule point with tuples X, Y, Z, returning tuple of tuples,
-    using func_t functions tuple for operations'''
-    mul_f, mul_i_f, mul_ec_a, add_f, sub_f = func_t
-    # S = 4*X*Y^2
-    S = mul_f(P, mul_f(P, mul_i_f(P, X, 4), Y), Y)
-
-    Z_sq = mul_f(P, Z, Z)
-    Z_4th = mul_f(P, Z_sq, Z_sq)
-    Y_sq = mul_f(P, Y, Y)
-    Y_4th = mul_f(P, Y_sq, Y_sq)
-
-    # M = 3*X^2 + a*Z^4
-    M = mul_f(P, mul_i_f(P, X, 3), X)
-    M = add_f(P, mul_ec_a(P, Z_4th, ec_a), M)
-
-    # X' = M^2 - 2*S
-    X_p = sub_f(P, mul_f(P, M, M), mul_i_f(P, S, 2))
-    # Y' = M*(S - X') - 8*Y^4
-    Y_p = sub_f(P, mul_f(P, M, sub_f(P, S, X_p)), mul_i_f(P, Y_4th, 8))
-    # Z' = 2*Y*Z
-    Z_p = mul_f(P, mul_i_f(P, Y, 2), Z)
-    return X_p, Y_p, Z_p
+        raise ValueError('FE must be Fq, Fq2 or Fq12', FE)
+    return AffinePoint(FE(Q, xr), FE(Q, yr), infr, ec)
 
 
 def add_points_jacobian(p1, p2, ec=default_ec, FE=Fq):
@@ -384,120 +318,28 @@ def add_points_jacobian(p1, p2, ec=default_ec, FE=Fq):
     http://www.hyperelliptic.org/EFD/oldefd/jacobian.html
     """
     if p1.infinity:
-        return p2
-    if p2.infinity:
-        return p1
-
+        ec = p2.ec
+    Q = ec.q
+    x1 = p1.x
+    y1 = p1.y
+    z1 = p1.z
+    inf1 = p1.infinity
+    x2 = p2.x
+    y2 = p2.y
+    z2 = p2.z
+    inf2 = p2.infinity
     if FE == Fq:
-        U1, U2, S1, S2 = calc_u1_u2_s1_s2_fq(p1.x.Z, p1.y.Z, p1.z.Z,
-                                             p2.x.Z, p2.y.Z, p2.z.Z,
-                                             ec)
+        xr, yr, zr, infr = fq_add_points_jacobian(x1.Z, y1.Z, z1.Z, inf1,
+                                                  x2.Z, y2.Z, z2.Z, inf2)
     elif FE == Fq2:
-        U1, U2, S1, S2 = calc_u1_u2_s1_s2_fqx_t(fq2_mul_fq2,
-                                                p1.x.ZT, p1.y.ZT, p1.z.ZT,
-                                                p2.x.ZT, p2.y.ZT, p2.z.ZT,
-                                                ec)
+        xr, yr, zr, infr = fq2_add_points_jacobian(x1.ZT, y1.ZT, z1.ZT, inf1,
+                                                   x2.ZT, y2.ZT, z2.ZT, inf2)
     elif FE == Fq12:
-        U1, U2, S1, S2 = calc_u1_u2_s1_s2_fqx_t(fq12_mul_fq12,
-                                                p1.x.ZT, p1.y.ZT, p1.z.ZT,
-                                                p2.x.ZT, p2.y.ZT, p2.z.ZT,
-                                                ec)
+        xr, yr, zr, infr = fq12_add_points_jacobian(x1.ZT, y1.ZT, z1.ZT, inf1,
+                                                    x2.ZT, y2.ZT, z2.ZT, inf2)
     else:
         raise ValueError('FE must be Fq, Fq2 or Fq12')
-
-    if U1 == U2:
-        if S1 != S2:
-            return JacobianPoint(FE.one(ec.q), FE.one(ec.q),
-                                 FE.zero(ec.q), True, ec)
-        else:
-            return double_point_jacobian(p1, ec, FE)
-
-    type_u1 = type(U1)
-    if type_u1 == int:
-        return calc_jp_on_fq_us(U1, U2, S1, S2, p1.z.Z, p2.z.Z, ec)
-    elif type_u1 == tuple and len(U1) == 2:
-        func_t = (fq2_mul_fq2, fq2_sub_fq2, fq2_mul_fq)
-        return calc_jp_on_fqx_t_us(func_t, U1, U2, S1, S2,
-                                   p1.z.ZT, p2.z.ZT, ec)
-    elif type_u1 == tuple and len(U1) == 12:
-        func_t = (fq12_mul_fq12, fq12_sub_fq12, fq12_mul_fq)
-        return calc_jp_on_fqx_t_us(func_t, U1, U2, S1, S2,
-                                   p1.z.ZT, p2.z.ZT, ec)
-    else:
-        raise ValueError('FE must be Fq, Fq2 or Fq12')
-
-
-def calc_u1_u2_s1_s2_fq(x1, y1, z1, x2, y2, z2, ec):
-    '''x, y, z inputs of type int, returning tuple of int'''
-    P = ec.q
-    # U1 = X1*Z2^2
-    U1 = x1*z2*z2 % P
-    # U2 = X2*Z1^2
-    U2 = x2*z1*z1 % P
-    # S1 = Y1*Z2^3
-    S1 = y1*z2*z2*z2 % P
-    # S2 = Y2*Z1^3
-    S2 = y2*z1*z1*z1 % P
-    return(U1, U2, S1, S2)
-
-
-def calc_u1_u2_s1_s2_fqx_t(mul_f, x1_t, y1_t, z1_t, x2_t, y2_t, z2_t, ec):
-    '''x, y, z inputs of type fq2, returning tuple of fq2 tuples'''
-    P = ec.q
-    # U1 = X1*Z2^2
-    U1 = mul_f(P, mul_f(P, x1_t, z2_t), z2_t)
-    # U2 = X2*Z1^2
-    U2 = mul_f(P, mul_f(P, x2_t, z1_t), z1_t)
-    # S1 = Y1*Z2^3
-    S1 = mul_f(P, mul_f(P, mul_f(P, y1_t, z2_t), z2_t), z2_t)
-    # S2 = Y2*Z1^3
-    S2 = mul_f(P, mul_f(P, mul_f(P, y2_t, z1_t), z1_t), z1_t)
-    return(U1, U2, S1, S2)
-
-
-def calc_jp_on_fq_us(U1, U2, S1, S2, Z1, Z2, ec):
-    '''calc jacobian point with int U1, U2, S1, S2, Z1, Z2'''
-    P = ec.q
-    # H = U2 - U1
-    H = (U2-U1) % P
-    # R = S2 - S1
-    R = (S2-S1) % P
-    H_sq = H*H % P
-    H_cu = H*H_sq % P
-    # X3 = R^2 - H^3 - 2*U1*H^2
-    X3 = (R*R % P - H_cu - 2*U1*H_sq % P) % P
-    # Y3 = R*(U1*H^2 - X3) - S1*H^3
-    Y3 = (R*(U1*H_sq % P - X3) % P - S1*H_cu % P) % P
-    # Z3 = H*Z1*Z2
-    Z3 = H*Z1*Z2 % P
-    return JacobianPoint(Fq(P, X3), Fq(P, Y3), Fq(P, Z3), False, ec)
-
-
-def calc_jp_on_fqx_t_us(func_t, U1, U2, S1, S2, Z1, Z2, ec):
-    '''calc jacobian point with tuples U1, U2, S1, S2, Z1, Z2,
-    using func_t functions tuple for operations'''
-    P = ec.q
-    mul_f, sub_f, muli_f = func_t
-    # H = U2 - U1
-    H = sub_f(P, U2, U1)
-    # R = S2 - S1
-    R = sub_f(P, S2, S1)
-    H_sq = mul_f(P, H, H)
-    H_cu = mul_f(P, H, H_sq)
-    # X3 = R^2 - H^3 - 2*U1*H^2
-    X3 = sub_f(P,
-               sub_f(P, mul_f(P, R, R), H_cu),
-               mul_f(P, H_sq, muli_f(P, U1, 2)))
-    # Y3 = R*(U1*H^2 - X3) - S1*H^3
-    Y3 = sub_f(P,
-               mul_f(P, R, sub_f(P, mul_f(P, U1, H_sq), X3)),
-               mul_f(P, S1, H_cu))
-    # Z3 = H*Z1*Z2
-    Z3 = mul_f(P, mul_f(P, Z1, Z2), H)
-    if len(U1) == 2:
-        return JacobianPoint(Fq2(P, X3), Fq2(P, Y3), Fq2(P, Z3), False, ec)
-    else:
-        return JacobianPoint(Fq12(P, X3), Fq12(P, Y3), Fq12(P, Z3), False, ec)
+    return JacobianPoint(FE(Q, xr), FE(Q, yr), FE(Q, zr), infr, ec)
 
 
 def scalar_mult(c, p1, ec=default_ec, FE=Fq):
@@ -525,21 +367,28 @@ def scalar_mult_jacobian(c, p1, ec=default_ec, FE=Fq):
     Double and add:
     https://en.wikipedia.org/wiki/Elliptic_curve_point_multiplication
     """
-    if p1.infinity or c % ec.q == 0:
-        return JacobianPoint(FE.one(ec.q), FE.one(ec.q),
-                             FE.zero(ec.q), True, ec)
-    if isinstance(c, FE):
+    Q = ec.q
+    if type(c) == FE:
         c = c.Z
-    result = JacobianPoint(FE.one(ec.q), FE.one(ec.q),
-                           FE.zero(ec.q), True, ec)
-    addend = p1
-    while c > 0:
-        if c & 1:
-            result += addend
-        # double point
-        addend += addend
-        c = c >> 1
-    return result
+    px = p1.x
+    py = p1.y
+    pz = p1.z
+    pinf = p1.infinity
+    type_p = type(px)
+    if type_p == Fq:
+        xr, yr, zr, infr = fq_scalar_mult_jacobian(c,
+                                                   px.Z, py.Z, pz.Z, pinf)
+        return JacobianPoint(Fq(Q, xr), Fq(Q, yr), Fq(Q, zr), infr, ec)
+    elif type_p == Fq2:
+        xr, yr, zr, infr = fq2_scalar_mult_jacobian(c,
+                                                    px.ZT, py.ZT, pz.ZT, pinf)
+        return JacobianPoint(Fq2(Q, xr), Fq2(Q, yr), Fq2(Q, zr), infr, ec)
+    elif type_p == Fq12:
+        xr, yr, zr, infr = fq12_scalar_mult_jacobian(c,
+                                                     px.ZT, py.ZT, pz.ZT, pinf)
+        return JacobianPoint(Fq12(Q, xr), Fq12(Q, yr), Fq12(Q, zr), infr, ec)
+    else:
+        raise Exception("point should be Fq, Fq2 or Fq12 elements")
 
 
 def generator_Fq(ec=default_ec):
@@ -556,10 +405,17 @@ def untwist(point, ec=default_ec):
     coordinates back from Fq2 to Fq12. See Craig Costello book, look
     up twists.
     """
-    f = Fq12.one(ec.q)
-    wsq = Fq12(ec.q, f.root, Fq6.zero(ec.q))
-    wcu = Fq12(ec.q, Fq6.zero(ec.q), f.root)
-    return AffinePoint(point.x / wsq, point.y / wcu, False, ec)
+    Q = ec.q
+    x = point.x
+    y = point.y
+    type_x = type(x)
+    if type_x == Fq2:
+        x_t, y_t = fq2_untwist(x.ZT, y.ZT)
+    elif type_x == Fq12:
+        x_t, y_t = fq12_untwist(x.ZT, y.ZT)
+    else:
+        raise Exception("point should be Fq2 or Fq12 elements")
+    return AffinePoint(Fq12(Q, x_t), Fq12(Q, y_t), False, ec)
 
 
 def twist(point, ec=default_ec_twist):
@@ -568,12 +424,17 @@ def twist(point, ec=default_ec_twist):
     coordinates to a point on the twisted curve. See Craig Costello
     book, look up twists.
     """
-    f = Fq12.one(ec.q)
-    wsq = Fq12(ec.q, f.root, Fq6.zero(ec.q))
-    wcu = Fq12(ec.q, Fq6.zero(ec.q), f.root)
-    new_x = (point.x * wsq)
-    new_y = (point.y * wcu)
-    return AffinePoint(new_x, new_y, False, ec)
+    Q = ec.q
+    x = point.x
+    y = point.y
+    type_x = type(x)
+    if type_x == Fq2:
+        x_t, y_t = fq2_twist(x.ZT, y.ZT)
+    elif type_x == Fq12:
+        x_t, y_t = fq12_twist(x.ZT, y.ZT)
+    else:
+        raise Exception("point should be Fq2 or Fq12 elements")
+    return AffinePoint(Fq12(Q, x_t), Fq12(Q, y_t), False, ec)
 
 
 def psi(P, ec=default_ec):
@@ -692,6 +553,25 @@ def hash_to_point_prehashed_Fq2(m, ec=default_ec_twist):
 def hash_to_point_Fq2(m, ec=default_ec_twist):
     h = hash256(m)
     return hash_to_point_prehashed_Fq2(h, ec)
+
+
+try:
+    from .fields_t import (
+        fq_is_on_curve_affine, fq2_is_on_curve_affine, fq12_is_on_curve_affine,
+        fq_is_on_curve_jacobian, fq2_is_on_curve_jacobian,
+        fq12_is_on_curve_jacobian, fq_to_jacobian, fq2_to_jacobian,
+        fq12_to_jacobian, fq_to_affine, fq2_to_affine, fq12_to_affine,
+        fq_double_point, fq2_double_point, fq12_double_point,
+        fq_add_points, fq2_add_points, fq12_add_points,
+        fq2_twist, fq12_twist, fq2_untwist, fq12_untwist,
+        fq_scalar_mult_jacobian, fq2_scalar_mult_jacobian,
+        fq12_scalar_mult_jacobian, fq_add_points_jacobian,
+        fq2_add_points_jacobian, fq12_add_points_jacobian,
+        fq_double_point_jacobian, fq2_double_point_jacobian,
+        fq12_double_point_jacobian
+    )
+except ImportError as e:
+    logging.error(f'Can not import from fields_t_c: {e}')
 
 
 """

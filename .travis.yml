@@ -1,0 +1,105 @@
+matrix:
+  include:
+  - if: tag =~ .+
+    os: windows
+    language: sh
+  - if: tag =~ .+
+    os: osx
+    osx_image: xcode8
+    env: PYTHON_VERSION=3.7.4
+  - if: tag =~ .+
+    os: osx
+    osx_image: xcode8
+    env: PYTHON_VERSION=3.6.8
+  - if: tag =~ .+
+    os: linux
+    sudo: required
+    addons:
+      apt:
+        packages:
+          lzip
+    services:
+    - docker
+    env: PLAT=manylinux2010_x86_64
+  - if: tag =~ .+
+    os: linux
+    sudo: required
+    addons:
+      apt:
+        packages:
+          lzip
+    services:
+    - docker
+    env: PLAT=manylinux1_x86_64
+  - if: tag =~ .+
+    os: linux
+    sudo: required
+    addons:
+      apt:
+        packages:
+          lzip
+    services:
+    - docker
+    env: PLAT=manylinux1_i686 PRE_CMD=linux32
+install:
+- source contrib/version_env.sh
+- if [[ -n $TRAVIS_TAG ]] && [[ $TRAVIS_OS_NAME == 'windows' ]]; then
+    ./contrib/install_win.sh;
+  fi
+- if [[ -n $TRAVIS_TAG ]] && [[ $TRAVIS_OS_NAME == 'osx' ]]; then
+    ./contrib/install_osx.sh;
+  fi
+- if [[ -n $TRAVIS_TAG ]] && [[ $TRAVIS_OS_NAME == 'linux' ]]; then
+    ./contrib/install_linux.sh;
+  fi
+script:
+- if [[ -n $TRAVIS_TAG ]] && [[ $TRAVIS_OS_NAME == 'windows' ]]; then
+    ./contrib/script_win.sh;
+  fi
+- if [[ -n $TRAVIS_TAG ]] && [[ $TRAVIS_OS_NAME == 'osx' ]]; then
+    ./contrib/script_osx.sh;
+  fi
+- if [[ -n $TRAVIS_TAG ]] && [[ $TRAVIS_OS_NAME == 'linux' ]]; then
+    ./contrib/script_linux.sh;
+  fi
+deploy:
+- provider: releases
+  skip_cleanup: true
+  api_key:
+    secure: DV+4M/nOTmQzrKo12V9YuVlxJRBHeXNbcWyh4ERSaTkeX0btXmZlZQcD2Xpc1bDcugzO73knm4dc+z3k7SgAk/v9iZPphRQ1deaULyo67b4IIMZurKzZNNcccKXKwXanVN9LpDkfn/FwFlHXMYRdOBvIorvs19OUI0ULXXgpz9Xm6tkg9kqotGmrOQZPmibGnT7Aaqq7eYMXiP45wSMjKJsrLG2GJCYlMCvA21zcICwBcxiiSfFfqFzImLxdW6pHKaKbb6233j+f6T5HRl4i4T0DsW4FGm6z+wS+/XnQdso9VbHJVyQz11Y7ZEDpURqbd9DJUfO7YMtBp4DWMVMuB1bRNvsDdv3a8LNzKARmI2Ugw9/QcKs2bG9JREa2xRyuIDLM9cAx+xIuXC6pqx1TGQBSKWFsRj6jy/gDJAlWuFJTKXcRF1nOiT7+gIMZVvrJpbCOv6MpFoeY1tRZBfLhwitX81T6HYK6UbgJ683jaDYGzijY7qOXbue4Et/ahilU+0FZqvpFGgLEUAd+UgjDVGrc9B7/52zyVhg/JR5jOEO2E0pCqKsI/gFV5zN/PBMEfn5fDYdcMo7cwo+AFhcKRqZVxp2UPKzy6180S3CWIqaLiSkXP3T0banRKHRxCbzf47l8Aq5xvrM4GTIiMcqa+t9BmC5Z1oGSlmCAvbHiRQ0=
+  file:
+  - dist/python_bls-$PKG_VERSION-cp36-cp36m-win32.whl
+  - dist/python_bls-$PKG_VERSION-cp36-cp36m-win_amd64.whl
+  - dist/python_bls-$PKG_VERSION-cp37-cp37m-win32.whl
+  - dist/python_bls-$PKG_VERSION-cp37-cp37m-win_amd64.whl
+  on:
+    repo: zebra-lucky/python-bls
+    tags: true
+    condition: "$TRAVIS_OS_NAME = windows"
+- provider: releases
+  skip_cleanup: true
+  api_key:
+    secure: DV+4M/nOTmQzrKo12V9YuVlxJRBHeXNbcWyh4ERSaTkeX0btXmZlZQcD2Xpc1bDcugzO73knm4dc+z3k7SgAk/v9iZPphRQ1deaULyo67b4IIMZurKzZNNcccKXKwXanVN9LpDkfn/FwFlHXMYRdOBvIorvs19OUI0ULXXgpz9Xm6tkg9kqotGmrOQZPmibGnT7Aaqq7eYMXiP45wSMjKJsrLG2GJCYlMCvA21zcICwBcxiiSfFfqFzImLxdW6pHKaKbb6233j+f6T5HRl4i4T0DsW4FGm6z+wS+/XnQdso9VbHJVyQz11Y7ZEDpURqbd9DJUfO7YMtBp4DWMVMuB1bRNvsDdv3a8LNzKARmI2Ugw9/QcKs2bG9JREa2xRyuIDLM9cAx+xIuXC6pqx1TGQBSKWFsRj6jy/gDJAlWuFJTKXcRF1nOiT7+gIMZVvrJpbCOv6MpFoeY1tRZBfLhwitX81T6HYK6UbgJ683jaDYGzijY7qOXbue4Et/ahilU+0FZqvpFGgLEUAd+UgjDVGrc9B7/52zyVhg/JR5jOEO2E0pCqKsI/gFV5zN/PBMEfn5fDYdcMo7cwo+AFhcKRqZVxp2UPKzy6180S3CWIqaLiSkXP3T0banRKHRxCbzf47l8Aq5xvrM4GTIiMcqa+t9BmC5Z1oGSlmCAvbHiRQ0=
+  file:
+  - dist/python_bls-$PKG_VERSION-cp36-cp36m-macosx_10_6_intel.whl
+  - dist/python_bls-$PKG_VERSION-cp37-cp37m-macosx_10_6_intel.whl
+  on:
+    repo: zebra-lucky/python-bls
+    tags: true
+    condition: "$TRAVIS_OS_NAME = osx"
+- provider: releases
+  skip_cleanup: true
+  api_key:
+    secure: DV+4M/nOTmQzrKo12V9YuVlxJRBHeXNbcWyh4ERSaTkeX0btXmZlZQcD2Xpc1bDcugzO73knm4dc+z3k7SgAk/v9iZPphRQ1deaULyo67b4IIMZurKzZNNcccKXKwXanVN9LpDkfn/FwFlHXMYRdOBvIorvs19OUI0ULXXgpz9Xm6tkg9kqotGmrOQZPmibGnT7Aaqq7eYMXiP45wSMjKJsrLG2GJCYlMCvA21zcICwBcxiiSfFfqFzImLxdW6pHKaKbb6233j+f6T5HRl4i4T0DsW4FGm6z+wS+/XnQdso9VbHJVyQz11Y7ZEDpURqbd9DJUfO7YMtBp4DWMVMuB1bRNvsDdv3a8LNzKARmI2Ugw9/QcKs2bG9JREa2xRyuIDLM9cAx+xIuXC6pqx1TGQBSKWFsRj6jy/gDJAlWuFJTKXcRF1nOiT7+gIMZVvrJpbCOv6MpFoeY1tRZBfLhwitX81T6HYK6UbgJ683jaDYGzijY7qOXbue4Et/ahilU+0FZqvpFGgLEUAd+UgjDVGrc9B7/52zyVhg/JR5jOEO2E0pCqKsI/gFV5zN/PBMEfn5fDYdcMo7cwo+AFhcKRqZVxp2UPKzy6180S3CWIqaLiSkXP3T0banRKHRxCbzf47l8Aq5xvrM4GTIiMcqa+t9BmC5Z1oGSlmCAvbHiRQ0=
+  file:
+  - dist/python_bls-$PKG_VERSION-cp36-cp36m-manylinux1_i686.whl
+  - dist/python_bls-$PKG_VERSION-cp37-cp37m-manylinux1_i686.whl
+  - dist/python_bls-$PKG_VERSION-cp36-cp36m-manylinux1_x86_64.whl
+  - dist/python_bls-$PKG_VERSION-cp37-cp37m-manylinux1_x86_64.whl
+  - dist/python_bls-$PKG_VERSION-cp36-cp36m-manylinux2010_x86_64.whl
+  - dist/python_bls-$PKG_VERSION-cp37-cp37m-manylinux2010_x86_64.whl
+  - dist/python-bls-$PKG_VERSION.tar.gz
+  on:
+    repo: zebra-lucky/python-bls
+    tags: true
+    condition: "$TRAVIS_OS_NAME = linux"

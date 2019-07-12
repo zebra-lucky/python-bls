@@ -41,7 +41,7 @@ class PublicKey:
 
     @staticmethod
     def from_g1(g1_el):
-        assert isinstance(g1_el, JacobianPoint)
+        assert type(g1_el) == JacobianPoint
         return PublicKey(g1_el)
 
     def get_fingerprint(self):
