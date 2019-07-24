@@ -2,7 +2,7 @@ from collections import namedtuple
 
 from . import bls12381
 from .ec import untwist
-from .fields import Fq12, FQ12_ONE_TUPLE, fq12_t_mul_fq12_t
+from .fields import Fq12, FQ12_ONE_TUPLE, fq12_mul_fq12
 
 
 # Struct for elliptic curve parameters
@@ -68,14 +68,14 @@ def miller_loop(T, P, Q, ec=default_ec):
     for i in range(1, len(T_bits)):
         # Compute sloped line lrr
         lrr = double_line_eval(R, P, ec)
-        f = fq12_t_mul_fq12_t(ec.q, f, f)
-        f = fq12_t_mul_fq12_t(ec.q, f, lrr.ZT)
+        f = fq12_mul_fq12(ec.q, f, f)
+        f = fq12_mul_fq12(ec.q, f, lrr.ZT)
 
         R = 2 * R
         if T_bits[i] == 1:
             # Compute sloped line lrq
             lrq = add_line_eval(R, Q, P, ec)
-            f = fq12_t_mul_fq12_t(ec.q, f, lrq.ZT)
+            f = fq12_mul_fq12(ec.q, f, lrq.ZT)
             R = R + Q
     return Fq12(ec.q, f)
 
@@ -86,7 +86,7 @@ def final_exponentiation(element, ec=default_ec):
     loop to a unique element of Fq12.
     """
     if ec.k == 12:
-        ans = pow(element, (pow(ec.q,4) - pow(ec.q,2) + 1) // ec.n)
+        ans = pow(element, (pow(ec.q, 4) - pow(ec.q, 2) + 1) // ec.n)
         ans = ans.qi_power(2) * ans
         ans = ans.qi_power(6) / ans
         return ans
@@ -115,7 +115,7 @@ def ate_pairing_multi(Ps, Qs, ec=default_ec):
     prod = FQ12_ONE_TUPLE
     for i in range(len(Qs)):
         ml_res = miller_loop(T, Ps[i], Qs[i], ec)
-        prod = fq12_t_mul_fq12_t(ec.q, prod, ml_res.ZT)
+        prod = fq12_mul_fq12(ec.q, prod, ml_res.ZT)
     return final_exponentiation(Fq12(ec.q, prod), ec)
 
 

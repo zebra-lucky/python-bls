@@ -1,22 +1,18 @@
 # -*- coding: utf-8 -*-
 
-from .fields_t import (fq_int_invert, fq_int_pow, fq_int_floordiv, fq2_t_neg,
-                       fq2_t_invert, fq2_t_pow, fq2_t_qi_pow,
-                       fq2_t_mul_by_nonresidue, fq2_t_add_fq2_t,
-                       fq2_t_add_fq_int, fq2_t_sub_fq2_t, fq2_t_sub_fq_int,
-                       fq_int_sub_fq2_t, fq2_t_mul_fq2_t, fq2_t_mul_fq_int,
-                       fq12_t_mul_fq2_t, fq12_t_invert, fq6_t_mul_fq2_t,
-                       fq6_t_neg, fq6_t_invert, fq6_t_pow, fq6_t_qi_pow,
-                       fq6_t_mul_by_nonresidue, fq6_t_add_fq6_t,
-                       fq6_t_add_fq2_t, fq6_t_add_fq_int, fq6_t_sub_fq6_t,
-                       fq6_t_sub_fq2_t, fq6_t_sub_fq_int, fq2_t_sub_fq6_t,
-                       fq_int_sub_fq6_t, fq6_t_mul_fq6_t, fq6_t_mul_fq_int,
-                       fq12_t_mul_fq6_t, fq12_t_neg, fq12_t_pow, fq12_t_qi_pow,
-                       fq12_t_add_fq12_t, fq12_t_add_fq_int, fq12_t_add_fq6_t,
-                       fq12_t_add_fq2_t, fq12_t_sub_fq12_t, fq12_t_sub_fq_int,
-                       fq12_t_sub_fq6_t, fq12_t_sub_fq2_t, fq_int_sub_fq12_t,
-                       fq6_t_sub_fq12_t, fq2_t_sub_fq12_t, fq12_t_mul_fq12_t,
-                       fq12_t_mul_fq_int)
+from .fields_t import (fq_invert, fq_pow, fq_floordiv, fq2_neg, fq2_invert,
+                       fq2_pow, fq2_qi_pow, fq2_mul_by_nonresidue, fq2_add_fq2,
+                       fq2_add_fq, fq2_sub_fq2, fq2_sub_fq, fq_sub_fq2,
+                       fq2_mul_fq2, fq2_mul_fq, fq12_mul_fq2, fq12_invert,
+                       fq6_mul_fq2, fq6_neg, fq6_invert, fq6_pow, fq6_qi_pow,
+                       fq6_mul_by_nonresidue, fq6_add_fq6, fq6_add_fq2,
+                       fq6_add_fq, fq6_sub_fq6, fq6_sub_fq2, fq6_sub_fq,
+                       fq2_sub_fq6, fq_sub_fq6, fq6_mul_fq6, fq6_mul_fq,
+                       fq12_mul_fq6, fq12_neg, fq12_pow, fq12_qi_pow,
+                       fq12_add_fq12, fq12_add_fq, fq12_add_fq6, fq12_add_fq2,
+                       fq12_sub_fq12, fq12_sub_fq, fq12_sub_fq6, fq12_sub_fq2,
+                       fq_sub_fq12, fq6_sub_fq12, fq2_sub_fq12, fq12_mul_fq12,
+                       fq12_mul_fq)
 
 
 bls12381_q = int('0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf'
@@ -102,10 +98,10 @@ class Fq:
         return Fq(self.Q, -self.Z)
 
     def __invert__(self):
-        return Fq(self.Q, fq_int_invert(self.Q, self.Z))
+        return Fq(self.Q, fq_invert(self.Q, self.Z))
 
     def __pow__(self, X):
-        return Fq(self.Q, fq_int_pow(self.Q, self.Z, X))
+        return Fq(self.Q, fq_pow(self.Q, self.Z, X))
 
     def __add__(self, X):
         tx = type(X)
@@ -162,9 +158,9 @@ class Fq:
     def __floordiv__(self, X):
         tx = type(X)
         if tx == Fq:
-            return Fq(self.Q, fq_int_floordiv(self.Q, self.Z, X.Z))
+            return Fq(self.Q, fq_floordiv(self.Q, self.Z, X.Z))
         elif tx == int:
-            return Fq(self.Q, fq_int_floordiv(self.Q, self.Z, X))
+            return Fq(self.Q, fq_floordiv(self.Q, self.Z, X))
         else:
             return NotImplemented
 
@@ -374,13 +370,13 @@ class Fq2(FieldExtBase):
         return ('Fq2(Q, %s)' % ', '.join(repr(fq) for fq in self))
 
     def __neg__(self):
-        return Fq2(self.Q, fq2_t_neg(self.Q, self.ZT))
+        return Fq2(self.Q, fq2_neg(self.Q, self.ZT))
 
     def __invert__(self):
-        return Fq2(self.Q, fq2_t_invert(self.Q, self.ZT))
+        return Fq2(self.Q, fq2_invert(self.Q, self.ZT))
 
     def __pow__(self, e):
-        return Fq2(self.Q, fq2_t_pow(self.Q, self.ZT, e))
+        return Fq2(self.Q, fq2_pow(self.Q, self.ZT, e))
 
     def qi_power(self, i):
         global bls12381_q
@@ -389,21 +385,21 @@ class Fq2(FieldExtBase):
         i %= 2
         if i == 0:
             return self
-        return Fq2(self.Q, fq2_t_qi_pow(self.Q, self.ZT, i))
+        return Fq2(self.Q, fq2_qi_pow(self.Q, self.ZT, i))
 
     def mul_by_nonresidue(self):
         # multiply by u + 1
-        return Fq2(self.Q, fq2_t_mul_by_nonresidue(self.Q, self.ZT))
+        return Fq2(self.Q, fq2_mul_by_nonresidue(self.Q, self.ZT))
 
     def __add__(self, other):
         Q = self.Q
         tx = type(other)
         if tx == Fq2:
-            return Fq2(Q, fq2_t_add_fq2_t(Q, self.ZT, other.ZT))
+            return Fq2(Q, fq2_add_fq2(Q, self.ZT, other.ZT))
         elif tx == int:
-            return Fq2(Q, fq2_t_add_fq_int(Q, self.ZT, other))
+            return Fq2(Q, fq2_add_fq(Q, self.ZT, other))
         elif tx == Fq:
-            return Fq2(Q, fq2_t_add_fq_int(Q, self.ZT, other.Z))
+            return Fq2(Q, fq2_add_fq(Q, self.ZT, other.Z))
         else:
             return NotImplemented
 
@@ -411,11 +407,11 @@ class Fq2(FieldExtBase):
         Q = self.Q
         tx = type(other)
         if tx == Fq2:
-            return Fq2(Q, fq2_t_sub_fq2_t(Q, self.ZT, other.ZT))
+            return Fq2(Q, fq2_sub_fq2(Q, self.ZT, other.ZT))
         elif tx == int:
-            return Fq2(Q, fq2_t_sub_fq_int(Q, self.ZT, other))
+            return Fq2(Q, fq2_sub_fq(Q, self.ZT, other))
         elif tx == Fq:
-            return Fq2(Q, fq2_t_sub_fq_int(Q, self.ZT, other.Z))
+            return Fq2(Q, fq2_sub_fq(Q, self.ZT, other.Z))
         else:
             return NotImplemented
 
@@ -423,11 +419,11 @@ class Fq2(FieldExtBase):
         Q = self.Q
         tx = type(other)
         if tx == Fq2:
-            return Fq2(Q, fq2_t_sub_fq2_t(Q, other.ZT, self.ZT))
+            return Fq2(Q, fq2_sub_fq2(Q, other.ZT, self.ZT))
         elif tx == int:
-            return Fq2(Q, fq_int_sub_fq2_t(Q, other, self.ZT))
+            return Fq2(Q, fq_sub_fq2(Q, other, self.ZT))
         elif tx == Fq:
-            return Fq2(Q, fq_int_sub_fq2_t(Q, other.Z, self.ZT))
+            return Fq2(Q, fq_sub_fq2(Q, other.Z, self.ZT))
         else:
             return NotImplemented
 
@@ -435,11 +431,11 @@ class Fq2(FieldExtBase):
         Q = self.Q
         tx = type(other)
         if tx == Fq2:
-            return Fq2(Q, fq2_t_mul_fq2_t(Q, self.ZT, other.ZT))
+            return Fq2(Q, fq2_mul_fq2(Q, self.ZT, other.ZT))
         elif tx == int:
-            return Fq2(Q, fq2_t_mul_fq_int(Q, self.ZT, other))
+            return Fq2(Q, fq2_mul_fq(Q, self.ZT, other))
         elif tx == Fq:
-            return Fq2(Q, fq2_t_mul_fq_int(Q, self.ZT, other.Z))
+            return Fq2(Q, fq2_mul_fq(Q, self.ZT, other.Z))
         else:
             return NotImplemented
 
@@ -447,20 +443,15 @@ class Fq2(FieldExtBase):
         Q = self.Q
         tx = type(other)
         if tx == Fq12:
-            return Fq12(Q, fq12_t_mul_fq2_t(Q, fq12_t_invert(Q, other.ZT),
-                                            self.ZT))
+            return Fq12(Q, fq12_mul_fq2(Q, fq12_invert(Q, other.ZT), self.ZT))
         elif tx == Fq6:
-            return Fq6(Q, fq6_t_mul_fq2_t(Q, fq2_t_invert(Q, other.ZT),
-                                          self.ZT))
+            return Fq6(Q, fq6_mul_fq2(Q, fq2_invert(Q, other.ZT), self.ZT))
         elif tx == Fq2:
-            return Fq2(Q, fq2_t_mul_fq2_t(Q, self.ZT,
-                                          fq2_t_invert(Q, other.ZT)))
+            return Fq2(Q, fq2_mul_fq2(Q, self.ZT, fq2_invert(Q, other.ZT)))
         elif tx == int:
-            return Fq2(Q, fq2_t_mul_fq_int(Q, self.ZT,
-                                           fq_int_invert(Q, other)))
+            return Fq2(Q, fq2_mul_fq(Q, self.ZT, fq_invert(Q, other)))
         elif tx == Fq:
-            return Fq2(Q, fq2_t_mul_fq_int(Q, self.ZT,
-                                           fq_int_invert(Q, other.Z)))
+            return Fq2(Q, fq2_mul_fq(Q, self.ZT, fq_invert(Q, other.Z)))
         else:
             return NotImplemented
 
@@ -531,13 +522,13 @@ class Fq6(FieldExtBase):
         return ('Fq6(Q, %s)' % ', '.join(repr(fq2) for fq2 in self))
 
     def __neg__(self):
-        return Fq6(self.Q, fq6_t_neg(self.Q, self.ZT))
+        return Fq6(self.Q, fq6_neg(self.Q, self.ZT))
 
     def __invert__(self):
-        return Fq6(self.Q, fq6_t_invert(self.Q, self.ZT))
+        return Fq6(self.Q, fq6_invert(self.Q, self.ZT))
 
     def __pow__(self, e):
-        return Fq6(self.Q, fq6_t_pow(self.Q, self.ZT, e))
+        return Fq6(self.Q, fq6_pow(self.Q, self.ZT, e))
 
     def qi_power(self, i):
         global bls12381_q
@@ -546,23 +537,23 @@ class Fq6(FieldExtBase):
         i %= 6
         if i == 0:
             return self
-        return Fq6(self.Q, fq6_t_qi_pow(self.Q, self.ZT, i))
+        return Fq6(self.Q, fq6_qi_pow(self.Q, self.ZT, i))
 
     def mul_by_nonresidue(self):
         # multiply by v
-        return Fq6(self.Q, fq6_t_mul_by_nonresidue(self.Q, self.ZT))
+        return Fq6(self.Q, fq6_mul_by_nonresidue(self.Q, self.ZT))
 
     def __add__(self, other):
         Q = self.Q
         tx = type(other)
         if tx == Fq6:
-            return Fq6(Q, fq6_t_add_fq6_t(Q, self.ZT, other.ZT))
+            return Fq6(Q, fq6_add_fq6(Q, self.ZT, other.ZT))
         elif tx == Fq2:
-            return Fq6(Q, fq6_t_add_fq2_t(Q, self.ZT, other.ZT))
+            return Fq6(Q, fq6_add_fq2(Q, self.ZT, other.ZT))
         elif tx == Fq:
-            return Fq6(Q, fq6_t_add_fq_int(Q, self.ZT, other.Z))
+            return Fq6(Q, fq6_add_fq(Q, self.ZT, other.Z))
         elif tx == int:
-            return Fq6(Q, fq6_t_add_fq_int(Q, self.ZT, other))
+            return Fq6(Q, fq6_add_fq(Q, self.ZT, other))
         else:
             return NotImplemented
 
@@ -570,13 +561,13 @@ class Fq6(FieldExtBase):
         Q = self.Q
         tx = type(other)
         if tx == Fq6:
-            return Fq6(Q, fq6_t_sub_fq6_t(Q, self.ZT, other.ZT))
+            return Fq6(Q, fq6_sub_fq6(Q, self.ZT, other.ZT))
         elif tx == Fq2:
-            return Fq6(Q, fq6_t_sub_fq2_t(Q, self.ZT, other.ZT))
+            return Fq6(Q, fq6_sub_fq2(Q, self.ZT, other.ZT))
         elif tx == Fq:
-            return Fq6(Q, fq6_t_sub_fq_int(Q, self.ZT, other.Z))
+            return Fq6(Q, fq6_sub_fq(Q, self.ZT, other.Z))
         elif tx == int:
-            return Fq6(Q, fq6_t_sub_fq_int(Q, self.ZT, other))
+            return Fq6(Q, fq6_sub_fq(Q, self.ZT, other))
         else:
             return NotImplemented
 
@@ -584,13 +575,13 @@ class Fq6(FieldExtBase):
         Q = self.Q
         tx = type(other)
         if tx == Fq6:
-            return Fq6(Q, fq6_t_sub_fq6_t(Q, other.ZT, self.ZT))
+            return Fq6(Q, fq6_sub_fq6(Q, other.ZT, self.ZT))
         elif tx == Fq2:
-            return Fq6(Q, fq2_t_sub_fq6_t(Q, other.ZT, self.ZT))
+            return Fq6(Q, fq2_sub_fq6(Q, other.ZT, self.ZT))
         elif tx == Fq:
-            return Fq6(Q, fq_int_sub_fq6_t(Q, other.Z, self.ZT))
+            return Fq6(Q, fq_sub_fq6(Q, other.Z, self.ZT))
         elif tx == int:
-            return Fq6(Q, fq_int_sub_fq6_t(Q, other, self.ZT))
+            return Fq6(Q, fq_sub_fq6(Q, other, self.ZT))
         else:
             return NotImplemented
 
@@ -598,13 +589,13 @@ class Fq6(FieldExtBase):
         Q = self.Q
         tx = type(other)
         if tx == Fq6:
-            return Fq6(Q, fq6_t_mul_fq6_t(Q, self.ZT, other.ZT))
+            return Fq6(Q, fq6_mul_fq6(Q, self.ZT, other.ZT))
         elif tx == Fq2:
-            return Fq6(Q, fq6_t_mul_fq2_t(Q, self.ZT, other.ZT))
+            return Fq6(Q, fq6_mul_fq2(Q, self.ZT, other.ZT))
         elif tx == Fq:
-            return Fq6(Q, fq6_t_mul_fq_int(Q, self.ZT, other.Z))
+            return Fq6(Q, fq6_mul_fq(Q, self.ZT, other.Z))
         elif tx == int:
-            return Fq6(Q, fq6_t_mul_fq_int(Q, self.ZT, other))
+            return Fq6(Q, fq6_mul_fq(Q, self.ZT, other))
         else:
             return NotImplemented
 
@@ -612,20 +603,15 @@ class Fq6(FieldExtBase):
         Q = self.Q
         tx = type(other)
         if tx == Fq12:
-            return Fq12(Q, fq12_t_mul_fq6_t(Q, fq12_t_invert(Q, other.ZT),
-                                            self.ZT))
+            return Fq12(Q, fq12_mul_fq6(Q, fq12_invert(Q, other.ZT), self.ZT))
         elif tx == Fq6:
-            return Fq6(Q, fq6_t_mul_fq6_t(Q, self.ZT,
-                                          fq6_t_invert(Q, other.ZT)))
+            return Fq6(Q, fq6_mul_fq6(Q, self.ZT, fq6_invert(Q, other.ZT)))
         elif tx == Fq2:
-            return Fq6(Q, fq6_t_mul_fq2_t(Q, self.ZT,
-                                          fq2_t_invert(Q, other.ZT)))
+            return Fq6(Q, fq6_mul_fq2(Q, self.ZT, fq2_invert(Q, other.ZT)))
         elif tx == Fq:
-            return Fq6(Q, fq6_t_mul_fq_int(Q, self.ZT,
-                                           fq_int_invert(Q, other.Z)))
+            return Fq6(Q, fq6_mul_fq(Q, self.ZT, fq_invert(Q, other.Z)))
         elif tx == int:
-            return Fq6(Q, fq6_t_mul_fq_int(Q, self.ZT,
-                                           fq_int_invert(Q, other)))
+            return Fq6(Q, fq6_mul_fq(Q, self.ZT, fq_invert(Q, other)))
         else:
             return NotImplemented
 
@@ -675,13 +661,13 @@ class Fq12(FieldExtBase):
         return ('Fq12(Q, %s)' % ', '.join(repr(fq6) for fq6 in self))
 
     def __neg__(self):
-        return Fq12(self.Q, fq12_t_neg(self.Q, self.ZT))
+        return Fq12(self.Q, fq12_neg(self.Q, self.ZT))
 
     def __invert__(self):
-        return Fq12(self.Q, fq12_t_invert(self.Q, self.ZT))
+        return Fq12(self.Q, fq12_invert(self.Q, self.ZT))
 
     def __pow__(self, e):
-        return Fq12(self.Q, fq12_t_pow(self.Q, self.ZT, e))
+        return Fq12(self.Q, fq12_pow(self.Q, self.ZT, e))
 
     def qi_power(self, i):
         global bls12381_q
@@ -690,21 +676,21 @@ class Fq12(FieldExtBase):
         i %= 12
         if i == 0:
             return self
-        return Fq12(self.Q, fq12_t_qi_pow(self.Q, self.ZT, i))
+        return Fq12(self.Q, fq12_qi_pow(self.Q, self.ZT, i))
 
     def __add__(self, other):
         Q = self.Q
         tx = type(other)
         if tx == Fq12:
-            return Fq12(Q, fq12_t_add_fq12_t(Q, self.ZT, other.ZT))
+            return Fq12(Q, fq12_add_fq12(Q, self.ZT, other.ZT))
         elif tx == Fq:
-            return Fq12(Q, fq12_t_add_fq_int(Q, self.ZT, other.Z))
+            return Fq12(Q, fq12_add_fq(Q, self.ZT, other.Z))
         elif tx == Fq6:
-            return Fq12(Q, fq12_t_add_fq6_t(Q, self.ZT, other.ZT))
+            return Fq12(Q, fq12_add_fq6(Q, self.ZT, other.ZT))
         elif tx == Fq2:
-            return Fq12(Q, fq12_t_add_fq2_t(Q, self.ZT, other.ZT))
+            return Fq12(Q, fq12_add_fq2(Q, self.ZT, other.ZT))
         elif tx == int:
-            return Fq12(Q, fq12_t_add_fq_int(Q, self.ZT, other))
+            return Fq12(Q, fq12_add_fq(Q, self.ZT, other))
         else:
             return NotImplemented
 
@@ -712,15 +698,15 @@ class Fq12(FieldExtBase):
         Q = self.Q
         tx = type(other)
         if tx == Fq12:
-            return Fq12(Q, fq12_t_sub_fq12_t(Q, self.ZT, other.ZT))
+            return Fq12(Q, fq12_sub_fq12(Q, self.ZT, other.ZT))
         elif tx == Fq:
-            return Fq12(Q, fq12_t_sub_fq_int(Q, self.ZT, other.Z))
+            return Fq12(Q, fq12_sub_fq(Q, self.ZT, other.Z))
         elif tx == Fq6:
-            return Fq12(Q, fq12_t_sub_fq6_t(Q, self.ZT, other.ZT))
+            return Fq12(Q, fq12_sub_fq6(Q, self.ZT, other.ZT))
         elif tx == Fq2:
-            return Fq12(Q, fq12_t_sub_fq2_t(Q, self.ZT, other.ZT))
+            return Fq12(Q, fq12_sub_fq2(Q, self.ZT, other.ZT))
         elif tx == int:
-            return Fq12(Q, fq12_t_sub_fq_int(Q, self.ZT, other))
+            return Fq12(Q, fq12_sub_fq(Q, self.ZT, other))
         else:
             return NotImplemented
 
@@ -728,15 +714,15 @@ class Fq12(FieldExtBase):
         Q = self.Q
         tx = type(other)
         if tx == Fq12:
-            return Fq12(Q, fq12_t_sub_fq12_t(Q, other.ZT, self.ZT))
+            return Fq12(Q, fq12_sub_fq12(Q, other.ZT, self.ZT))
         elif tx == Fq:
-            return Fq12(Q, fq_int_sub_fq12_t(Q, other.Z, self.ZT))
+            return Fq12(Q, fq_sub_fq12(Q, other.Z, self.ZT))
         elif tx == Fq6:
-            return Fq12(Q, fq6_t_sub_fq12_t(Q, other.ZT, self.ZT))
+            return Fq12(Q, fq6_sub_fq12(Q, other.ZT, self.ZT))
         elif tx == Fq2:
-            return Fq12(Q, fq2_t_sub_fq12_t(Q, other.ZT, self.ZT))
+            return Fq12(Q, fq2_sub_fq12(Q, other.ZT, self.ZT))
         elif tx == int:
-            return Fq12(Q, fq_int_sub_fq12_t(Q, other, self.ZT))
+            return Fq12(Q, fq_sub_fq12(Q, other, self.ZT))
         else:
             return NotImplemented
 
@@ -744,15 +730,15 @@ class Fq12(FieldExtBase):
         Q = self.Q
         tx = type(other)
         if tx == Fq12:
-            return Fq12(Q, fq12_t_mul_fq12_t(Q, self.ZT, other.ZT))
+            return Fq12(Q, fq12_mul_fq12(Q, self.ZT, other.ZT))
         elif tx == int:
-            return Fq12(Q, fq12_t_mul_fq_int(Q, self.ZT, other))
+            return Fq12(Q, fq12_mul_fq(Q, self.ZT, other))
         elif tx == Fq:
-            return Fq12(Q, fq12_t_mul_fq_int(Q, self.ZT, other.Z))
+            return Fq12(Q, fq12_mul_fq(Q, self.ZT, other.Z))
         elif tx == Fq2:
-            return Fq12(Q, fq12_t_mul_fq2_t(Q, self.ZT, other.ZT))
+            return Fq12(Q, fq12_mul_fq2(Q, self.ZT, other.ZT))
         elif tx == Fq6:
-            return Fq12(Q, fq12_t_mul_fq6_t(Q, self.ZT, other.ZT))
+            return Fq12(Q, fq12_mul_fq6(Q, self.ZT, other.ZT))
         else:
             return NotImplemented
 
@@ -760,20 +746,15 @@ class Fq12(FieldExtBase):
         Q = self.Q
         tx = type(other)
         if tx == Fq12:
-            return Fq12(Q, fq12_t_mul_fq12_t(Q, self.ZT,
-                                             fq12_t_invert(Q, other.ZT)))
+            return Fq12(Q, fq12_mul_fq12(Q, self.ZT, fq12_invert(Q, other.ZT)))
         elif tx == int:
-            return Fq12(Q, fq12_t_mul_fq12_t(Q, self.ZT,
-                                             fq_int_invert(Q, other)))
+            return Fq12(Q, fq12_mul_fq12(Q, self.ZT, fq_invert(Q, other)))
         elif tx == Fq:
-            return Fq12(Q, fq12_t_mul_fq12_t(Q, self.ZT,
-                                             fq_int_invert(Q, other.Z)))
+            return Fq12(Q, fq12_mul_fq12(Q, self.ZT, fq_invert(Q, other.Z)))
         elif tx == Fq2:
-            return Fq12(Q, fq12_t_mul_fq2_t(Q, self.ZT,
-                                            fq2_t_invert(Q, other.ZT)))
+            return Fq12(Q, fq12_mul_fq2(Q, self.ZT, fq2_invert(Q, other.ZT)))
         elif tx == Fq6:
-            return Fq12(Q, fq12_t_mul_fq6_t(Q, self.ZT,
-                                            fq6_t_invert(Q, other.ZT)))
+            return Fq12(Q, fq12_mul_fq6(Q, self.ZT, fq6_invert(Q, other.ZT)))
         else:
             return NotImplemented
 

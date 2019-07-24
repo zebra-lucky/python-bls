@@ -18,7 +18,7 @@ bls12381_q = int('0x1a0111ea397fe69a4b1ba7b6434bacd764774b84f38512bf'
                  '6730d2a0f6b0f6241eabfffeb153ffffb9feffffffffaaab', 16)
 
 
-FQ2_ROOT = -1%bls12381_q
+FQ2_ROOT = -1 % bls12381_q
 FQ2_ONE_TUPLE = (1, 0)
 FQ2_ZERO_TUPLE = (0, 0)
 FQ6_ROOT_TUPLE = (1, 1)
@@ -29,7 +29,7 @@ FQ12_ONE_TUPLE = (1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 FQ12_ZERO_TUPLE = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
 
-def fq_int_invert(P, a):
+def fq_invert(P, a):
     '''Ivnert int value using extended euclidian algorithm for inversion'''
     p = P
     x0, x1, y0, y1 = 1, 0, 0, 1
@@ -37,13 +37,13 @@ def fq_int_invert(P, a):
         q, a, p = a // p, p, a % p
         x0, x1 = x1, x0 - q * x1
         y0, y1 = y1, y0 - q * y1
-    return x0%P
+    return x0 % P
 
 
-def fq_int_pow(P, a, X):
+def fq_pow(P, a, X):
     '''Pow a to X mod P '''
     if X == 0:
-        return 1%P
+        return 1 % P
     res = 1
     while X > 0:
         if X & 1:
@@ -53,37 +53,37 @@ def fq_int_pow(P, a, X):
     return res
 
 
-def fq_int_floordiv(P, a, X):
-    return a * fq_int_invert(P, X) % P
+def fq_floordiv(P, a, X):
+    return a * fq_invert(P, X) % P
 
 
-def fq2_t_neg(P, t_a):
+def fq2_neg(P, t_a):
     '''Neg tuple t_a returning tuple'''
     a, b = t_a
-    return (-a%P, -b%P)
+    return (-a % P, -b % P)
 
 
-def fq2_t_invert(P, t_a):
+def fq2_invert(P, t_a):
     '''Invert tuple t_a returning tuple'''
     a, b = t_a
-    factor = fq_int_invert(P, a * a + b * b)
-    return ((a*factor)%P, (-b*factor)%P)
+    factor = fq_invert(P, a * a + b * b)
+    return ((a*factor) % P, (-b*factor) % P)
 
 
-def fq2_t_pow(P, t_a, e):
+def fq2_pow(P, t_a, e):
     '''Pow tuple t_a returning tuple'''
     m, n = t_a
     a, b = 1, 0
     fq2r = FQ2_ROOT
     while e:
         if e & 1:
-            a, b = (a*m + b*n*fq2r)%P, (a*n + b*m)%P
-        m, n = (m*m + n*n*fq2r)%P, (m*n + n*m)%P
+            a, b = (a*m + b*n*fq2r) % P, (a*n + b*m) % P
+        m, n = (m*m + n*n*fq2r) % P, (m*n + n*m) % P
         e >>= 1
     return (a, b)
 
 
-def fq2_t_qi_pow(P, t_x, i):
+def fq2_qi_pow(P, t_x, i):
     '''Calc qi_power on t_x tuple returning tuple'''
     global bls12381_q, frob_coeffs
     if P != bls12381_q:
@@ -91,107 +91,97 @@ def fq2_t_qi_pow(P, t_x, i):
     i %= 2
     if i == 0:
         return t_x
-    return (t_x[0], t_x[1]*frob_coeffs[2, i, 1]%P)
+    return (t_x[0], t_x[1]*frob_coeffs[2, i, 1] % P)
 
 
-def fq2_t_mul_by_nonresidue(P, t_a):
+def fq2_mul_by_nonresidue(P, t_a):
     '''Mul by nonresidue on tuple t_a returning tuple'''
     a, b = t_a
-    return ((a-b)%P, (a+b)%P)
+    return ((a-b) % P, (a+b) % P)
 
 
-def fq2_t_add_fq_int(P, t_a, m):
+def fq2_add_fq(P, t_a, m):
     '''Add tuple t_a and int m returning tuple'''
     a, b = t_a
-    return ((a+m)%P, b)
+    return ((a+m) % P, b)
 
 
-def fq2_t_add_fq2_t(P, t_a, t_m):
+def fq2_add_fq2(P, t_a, t_m):
     '''Add tuple t_a and tuple t_m returning tuple'''
     a, b = t_a
     m, n = t_m
-    return ((a+m)%P, (b+n)%P)
+    return ((a+m) % P, (b+n) % P)
 
 
-def fq_int_sub_fq2_t(P, a, t_m):
+def fq_sub_fq2(P, a, t_m):
     '''Sub tuple t_m from int a returning tuple'''
     m, n = t_m
-    return ((a-m)%P, -n%P)
+    return ((a-m) % P, -n % P)
 
 
-def fq2_t_sub_fq_int(P, t_a, m):
+def fq2_sub_fq(P, t_a, m):
     '''Sub int m from tuple t_a returning tuple'''
     a, b = t_a
-    return ((a-m)%P, b)
+    return ((a-m) % P, b)
 
 
-def fq2_t_sub_fq2_t(P, t_a, t_m):
+def fq2_sub_fq2(P, t_a, t_m):
     '''Sub tuple t_m from tuple t_a returning tuple'''
     a, b = t_a
     m, n = t_m
-    return ((a-m)%P, (b-n)%P)
+    return ((a-m) % P, (b-n) % P)
 
 
-def fq2_t_mul_fq_int(P, t_a, m):
+def fq2_mul_fq(P, t_a, m):
     '''Multiple tuple t_a on int m returning tuple'''
     a, b = t_a
-    return (a*m%P, b*m%P)
+    return (a*m % P, b*m % P)
 
 
-def fq2_t_mul_fq2_t(P, t_a, t_m):
+def fq2_mul_fq2(P, t_a, t_m):
     '''Multiple tuple t_a on tuple t_m returning tuple'''
     a, b = t_a
     m, n = t_m
-    return ((a*m + b*n*FQ2_ROOT)%P, (a*n + b*m)%P)
+    return ((a*m + b*n*FQ2_ROOT) % P, (a*n + b*m) % P)
 
 
-def fq6_t_neg(P, t_a):
+def fq6_neg(P, t_a):
     '''Neg tuple t_a returning tuple'''
     a, b, c, d, e, f = t_a
-    return (-a%P, -b%P, -c%P, -d%P, -e%P, -f%P)
+    return (-a % P, -b % P, -c % P, -d % P, -e % P, -f % P)
 
 
-def fq6_t_invert(P, t_x):
+def fq6_invert(P, t_x):
     '''Invert tuple t_a returning tuple'''
     a, b, c = t_x[:2], t_x[2:4], t_x[4:]
-    g0 = fq2_t_mul_fq2_t(P, a, a)
-    g0 = fq2_t_sub_fq2_t(P, g0,
-                         fq2_t_mul_fq2_t(P, b,
-                                         fq2_t_mul_by_nonresidue(P, c)))
-    g1 = fq2_t_sub_fq2_t(P,
-                         fq2_t_mul_by_nonresidue(P,
-                                                 fq2_t_mul_fq2_t(P, c, c)),
-                         fq2_t_mul_fq2_t(P, a, b))
-    g2 = fq2_t_sub_fq2_t(P,
-                         fq2_t_mul_fq2_t(P, b, b),
-                         fq2_t_mul_fq2_t(P, a, c))
-    g0a = fq2_t_mul_fq2_t(P, g0, a)
-    g1cpg2b = fq2_t_add_fq2_t(P,
-                              fq2_t_mul_fq2_t(P, g1, c),
-                              fq2_t_mul_fq2_t(P, g2, b))
-    factor = fq2_t_invert(P,
-                          fq2_t_add_fq2_t(P,
-                                          g0a,
-                                          fq2_t_mul_by_nonresidue(P, g1cpg2b)))
-    ar, br = fq2_t_mul_fq2_t(P, g0, factor)
-    cr, dr = fq2_t_mul_fq2_t(P, g1, factor)
-    er, fr = fq2_t_mul_fq2_t(P, g2, factor)
-    return (ar%P, br%P, cr%P, dr%P, er%P, fr%P)
+    g0 = fq2_mul_fq2(P, a, a)
+    g0 = fq2_sub_fq2(P, g0, fq2_mul_fq2(P, b, fq2_mul_by_nonresidue(P, c)))
+    g1 = fq2_sub_fq2(P, fq2_mul_by_nonresidue(P, fq2_mul_fq2(P, c, c)),
+                     fq2_mul_fq2(P, a, b))
+    g2 = fq2_sub_fq2(P, fq2_mul_fq2(P, b, b), fq2_mul_fq2(P, a, c))
+    g0a = fq2_mul_fq2(P, g0, a)
+    g1cpg2b = fq2_add_fq2(P, fq2_mul_fq2(P, g1, c), fq2_mul_fq2(P, g2, b))
+    factor = fq2_invert(P, fq2_add_fq2(P, g0a,
+                        fq2_mul_by_nonresidue(P, g1cpg2b)))
+    ar, br = fq2_mul_fq2(P, g0, factor)
+    cr, dr = fq2_mul_fq2(P, g1, factor)
+    er, fr = fq2_mul_fq2(P, g2, factor)
+    return (ar % P, br % P, cr % P, dr % P, er % P, fr % P)
 
 
-def fq6_t_pow(P, t_a, e):
+def fq6_pow(P, t_a, e):
     '''Pow tuple t_a returning tuple'''
     t_ans = FQ6_ONE_TUPLE
     while e:
         if e & 1:
-            t_ans = fq6_t_mul_fq6_t(P, t_ans, t_a)
-        t_a = fq6_t_mul_fq6_t(P, t_a, t_a)
+            t_ans = fq6_mul_fq6(P, t_ans, t_a)
+        t_a = fq6_mul_fq6(P, t_a, t_a)
         e >>= 1
     a, b, c, d, e, f = t_ans
-    return (a%P, b%P, c%P, d%P, e%P, f%P)
+    return (a % P, b % P, c % P, d % P, e % P, f % P)
 
 
-def fq6_t_qi_pow(P, t_x, i):
+def fq6_qi_pow(P, t_x, i):
     '''Calc qi_power on t_x tuple returning tuple'''
     global bls12381_q, frob_coeffs
     if P != bls12381_q:
@@ -199,94 +189,92 @@ def fq6_t_qi_pow(P, t_x, i):
     i %= 6
     if i == 0:
         return t_x
-    a, b = fq2_t_qi_pow(P, t_x[:2], i)
-    c, d = fq2_t_mul_fq2_t(P, fq2_t_qi_pow(P, t_x[2:4], i),
-                           frob_coeffs[6, i, 1])
-    e, f = fq2_t_mul_fq2_t(P, fq2_t_qi_pow(P, t_x[4:6], i),
-                           frob_coeffs[6, i, 2])
+    a, b = fq2_qi_pow(P, t_x[:2], i)
+    c, d = fq2_mul_fq2(P, fq2_qi_pow(P, t_x[2:4], i), frob_coeffs[6, i, 1])
+    e, f = fq2_mul_fq2(P, fq2_qi_pow(P, t_x[4:6], i), frob_coeffs[6, i, 2])
     return (a, b, c, d, e, f)
 
 
-def fq6_t_mul_by_nonresidue(P, t_x):
+def fq6_mul_by_nonresidue(P, t_x):
     '''Mul by nonresidue on tuple t_a returning tuple'''
-    ar, br = fq2_t_mul_fq2_t(P, t_x[4:], FQ6_ROOT_TUPLE)
+    ar, br = fq2_mul_fq2(P, t_x[4:], FQ6_ROOT_TUPLE)
     cr, dr = t_x[:2]
     er, fr = t_x[2:4]
     return (ar, br, cr, dr, er, fr)
 
 
-def fq6_t_add_fq_int(P, t_a, m):
+def fq6_add_fq(P, t_a, m):
     '''Add tuple t_a and int m returning tuple'''
     a, b, c, d, e, f = t_a
-    return ((a+m)%P, b, c, d, e, f)
+    return ((a+m) % P, b, c, d, e, f)
 
 
-def fq6_t_add_fq2_t(P, t_a, t_m):
+def fq6_add_fq2(P, t_a, t_m):
     '''Add tuple t_a and tuple t_m returning tuple'''
     a, b, c, d, e, f = t_a
     m, n = t_m
-    return ((a+m)%P, (b+n)%P, c, d, e, f)
+    return ((a+m) % P, (b+n) % P, c, d, e, f)
 
 
-def fq6_t_add_fq6_t(P, t_a, t_m):
+def fq6_add_fq6(P, t_a, t_m):
     '''Add tuple t_a and tuple t_m returning tuple'''
     a, b, c, d, e, f = t_a
     m, n, o, p, q, r = t_m
-    return ((a+m)%P, (b+n)%P, (c+o)%P,
-            (d+p)%P, (e+q)%P, (f+r)%P)
+    return ((a+m) % P, (b+n) % P, (c+o) % P,
+            (d+p) % P, (e+q) % P, (f+r) % P)
 
 
-def fq_int_sub_fq6_t(P, a, t_m):
+def fq_sub_fq6(P, a, t_m):
     '''Sub tuple t_m from int a returning tuple'''
     m, n, o, p, q, r = t_m
-    return ((a-m)%P, -n%P, -o%P, -p%P, -q%P, -r%P)
+    return ((a-m) % P, -n % P, -o % P, -p % P, -q % P, -r % P)
 
 
-def fq6_t_sub_fq_int(P, t_a, m):
+def fq6_sub_fq(P, t_a, m):
     '''Sub int m from tuple t_a returning tuple'''
     a, b, c, d, e, f = t_a
-    return ((a-m)%P, b, c, d, e, f)
+    return ((a-m) % P, b, c, d, e, f)
 
 
-def fq2_t_sub_fq6_t(P, t_a, t_m):
+def fq2_sub_fq6(P, t_a, t_m):
     '''Sub tuple t_m from tuple t_a returning tuple'''
     a, b = t_a
     m, n, o, p, q, r = t_m
-    return ((a-m)%P, (b-n)%P, -o%P, -p%P, -q%P, -r%P)
+    return ((a-m) % P, (b-n) % P, -o % P, -p % P, -q % P, -r % P)
 
 
-def fq6_t_sub_fq2_t(P, t_a, t_m):
+def fq6_sub_fq2(P, t_a, t_m):
     '''Sub tuple t_m from tuple t_a returning tuple'''
     a, b, c, d, e, f = t_a
     m, n = t_m
-    return ((a-m)%P, (b-n)%P, c, d, e, f)
+    return ((a-m) % P, (b-n) % P, c, d, e, f)
 
 
-def fq6_t_sub_fq6_t(P, t_a, t_m):
+def fq6_sub_fq6(P, t_a, t_m):
     '''Sub tuple t_m from tuple t_a returning tuple'''
     a, b, c, d, e, f = t_a
     m, n, o, p, q, r = t_m
-    return ((a-m)%P, (b-n)%P, (c-o)%P,
-            (d-p)%P, (e-q)%P, (f-r)%P)
+    return ((a-m) % P, (b-n) % P, (c-o) % P,
+            (d-p) % P, (e-q) % P, (f-r) % P)
 
 
-def fq6_t_mul_fq_int(P, t_a, m):
+def fq6_mul_fq(P, t_a, m):
     '''Multiple tuple t_a on int m returning tuple'''
     a, b, c, d, e, f = t_a
-    return (a*m%P, b*m%P, c*m%P, d*m%P, e*m%P, f*m%P)
+    return (a*m % P, b*m % P, c*m % P, d*m % P, e*m % P, f*m % P)
 
 
-def fq6_t_mul_fq2_t(P, t_a, t_m):
+def fq6_mul_fq2(P, t_a, t_m):
     '''Multiple tuple t_a on tuple t_m returning tuple'''
     a, b, c, d, e, f = t_a
     m, n = t_m
     fq2r = FQ2_ROOT
-    return ((a*m + b*n*fq2r)%P, (a*n + b*m)%P,
-            (c*m + d*n*fq2r)%P, (c*n + d*m)%P,
-            (e*m + f*n*fq2r)%P, (e*n + f*m)%P)
+    return ((a*m + b*n*fq2r) % P, (a*n + b*m) % P,
+            (c*m + d*n*fq2r) % P, (c*n + d*m) % P,
+            (e*m + f*n*fq2r) % P, (e*n + f*m) % P)
 
 
-def fq6_t_mul_fq6_t(P, t_a, t_m):
+def fq6_mul_fq6(P, t_a, t_m):
     '''Multiple tuple t_a on tuple t_m returning tuple'''
     a, b, c, d, e, f = t_a
     m, n, o, p, q, r = t_m
@@ -302,45 +290,40 @@ def fq6_t_mul_fq6_t(P, t_a, t_m):
     mul_d = (a*p + b*o + cn + dm + eq + frfq2r + er + fq)
     mul_e = (a*q + b*r*fq2r + c*o + d*p*fq2r + e*m + f*n*fq2r)
     mul_f = (a*r + b*q + c*p + d*o + e*n + f*m)
-    return (mul_a%P, mul_b%P, mul_c%P, mul_d%P, mul_e%P, mul_f%P)
+    return (mul_a % P, mul_b % P, mul_c % P, mul_d % P, mul_e % P, mul_f % P)
 
 
-def fq12_t_neg(P, t_a):
+def fq12_neg(P, t_a):
     '''Neg tuple t_a returning tuple'''
     a, b, c, d, e, f, g, h, i, j, k, l = t_a
-    return (-a%P, -b%P, -c%P, -d%P, -e%P, -f%P,
-            -g%P, -h%P, -i%P, -j%P, -k%P, -l%P)
+    return (-a % P, -b % P, -c % P, -d % P, -e % P, -f % P,
+            -g % P, -h % P, -i % P, -j % P, -k % P, -l % P)
 
 
-def fq12_t_invert(P, t_x):
+def fq12_invert(P, t_x):
     '''Invert tuple t_a returning tuple'''
     a, b = t_x[:6], t_x[6:12]
-    aa = fq6_t_mul_fq6_t(P, a, a)
-    bb = fq6_t_mul_fq6_t(P, b, b)
-    factor = fq6_t_invert(P,
-                          fq6_t_sub_fq6_t(P,
-                                          aa,
-                                          fq6_t_mul_by_nonresidue(P, bb)))
-    ar, br, cr, dr, er, fr = fq6_t_mul_fq6_t(P, a, factor)
-    gr, hr, ir, jr, kr, lr = fq6_t_mul_fq6_t(P,
-                                             fq6_t_neg(P, b),
-                                             factor)
-    return (ar%P, br%P, cr%P, dr%P, er%P, fr%P,
-            gr%P, hr%P, ir%P, jr%P, kr%P, lr%P)
+    aa = fq6_mul_fq6(P, a, a)
+    bb = fq6_mul_fq6(P, b, b)
+    factor = fq6_invert(P, fq6_sub_fq6(P, aa, fq6_mul_by_nonresidue(P, bb)))
+    ar, br, cr, dr, er, fr = fq6_mul_fq6(P, a, factor)
+    gr, hr, ir, jr, kr, lr = fq6_mul_fq6(P, fq6_neg(P, b), factor)
+    return (ar % P, br % P, cr % P, dr % P, er % P, fr % P,
+            gr % P, hr % P, ir % P, jr % P, kr % P, lr % P)
 
 
-def fq12_t_pow(P, t_a, e):
+def fq12_pow(P, t_a, e):
     '''Pow tuple t_a returning tuple'''
     t_ans = FQ12_ONE_TUPLE
     while e:
         if e & 1:
-            t_ans = fq12_t_mul_fq12_t(P, t_ans, t_a)
-        t_a = fq12_t_mul_fq12_t(P, t_a, t_a)
+            t_ans = fq12_mul_fq12(P, t_ans, t_a)
+        t_a = fq12_mul_fq12(P, t_a, t_a)
         e >>= 1
     return t_ans
 
 
-def fq12_t_qi_pow(P, t_x, i):
+def fq12_qi_pow(P, t_x, i):
     '''Calc qi_power on t_x tuple returning tuple'''
     global bls12381_q, frob_coeffs
     if P != bls12381_q:
@@ -348,102 +331,101 @@ def fq12_t_qi_pow(P, t_x, i):
     i %= 12
     if i == 0:
         return t_x
-    a, b, c, d, e, f = fq6_t_qi_pow(P, t_x[:6], i)
-    g, h, i, j, k, l = fq6_t_mul_fq6_t(P,
-                                       fq6_t_qi_pow(P, t_x[6:12], i),
-                                       frob_coeffs[12, i, 1])
+    a, b, c, d, e, f = fq6_qi_pow(P, t_x[:6], i)
+    g, h, i, j, k, l = fq6_mul_fq6(P, fq6_qi_pow(P, t_x[6:12], i),
+                                   frob_coeffs[12, i, 1])
     return (a, b, c, d, e, f, g, h, i, j, k, l)
 
 
-def fq12_t_add_fq_int(P, t_a, m):
+def fq12_add_fq(P, t_a, m):
     '''Add tuple t_a and int m returning tuple'''
     a, b, c, d, e, f, g, h, i, j, k, l = t_a
-    return ((a+m)%P, b, c, d, e, f, g, h, i, j, k, l)
+    return ((a+m) % P, b, c, d, e, f, g, h, i, j, k, l)
 
 
-def fq12_t_add_fq2_t(P, t_a, t_m):
+def fq12_add_fq2(P, t_a, t_m):
     '''Add tuple t_a and tuple t_m returning tuple'''
     a, b, c, d, e, f, g, h, i, j, k, l = t_a
     m, n = t_m
-    return ((a+m)%P, (b+n)%P, c, d, e, f, g, h, i, j, k, l)
+    return ((a+m) % P, (b+n) % P, c, d, e, f, g, h, i, j, k, l)
 
 
-def fq12_t_add_fq6_t(P, t_a, t_m):
+def fq12_add_fq6(P, t_a, t_m):
     '''Add tuple t_a and tuple t_m returning tuple'''
     a, b, c, d, e, f, g, h, i, j, k, l = t_a
     m, n, o, p, q, r = t_m
-    return ((a+m)%P, (b+n)%P, (c+o)%P, (d+p)%P, (e+q)%P, (f+r)%P,
+    return ((a+m) % P, (b+n) % P, (c+o) % P, (d+p) % P, (e+q) % P, (f+r) % P,
             g, h, i, j, k, l)
 
 
-def fq12_t_add_fq12_t(P, t_a, t_m):
+def fq12_add_fq12(P, t_a, t_m):
     '''Add tuple t_a and tuple t_m returning tuple'''
     a, b, c, d, e, f, g, h, i, j, k, l = t_a
     m, n, o, p, q, r, s, t, u, v, w, x = t_m
-    return ((a+m)%P, (b+n)%P, (c+o)%P, (d+p)%P, (e+q)%P, (f+r)%P,
-            (g+s)%P, (h+t)%P, (i+u)%P, (j+v)%P, (k+w)%P, (l+x)%P)
+    return ((a+m) % P, (b+n) % P, (c+o) % P, (d+p) % P, (e+q) % P, (f+r) % P,
+            (g+s) % P, (h+t) % P, (i+u) % P, (j+v) % P, (k+w) % P, (l+x) % P)
 
 
-def fq12_t_sub_fq_int(P, t_a, m):
+def fq12_sub_fq(P, t_a, m):
     '''Sub int m from tuple t_a returning tuple'''
     a, b, c, d, e, f, g, h, i, j, k, l = t_a
-    return ((a-m)%P, b, c, d, e, f, g, h, i, j, k, l)
+    return ((a-m) % P, b, c, d, e, f, g, h, i, j, k, l)
 
 
-def fq_int_sub_fq12_t(P, a, t_m):
+def fq_sub_fq12(P, a, t_m):
     '''Sub tuple t_m from int a returning tuple'''
     m, n, o, p, q, r, s, t, u, v, w, x = t_m
-    return ((a-m)%P, -n%P, -o%P, -p%P, -q%P, -r%P,
-            -s%P, -t%P, -u%P, -v%P, -w%P, -x%P)
+    return ((a-m) % P, -n % P, -o % P, -p % P, -q % P, -r % P,
+            -s % P, -t % P, -u % P, -v % P, -w % P, -x % P)
 
 
-def fq12_t_sub_fq2_t(P, t_a, t_m):
+def fq12_sub_fq2(P, t_a, t_m):
     '''Sub tuple t_m from tuple t_a returning tuple'''
     a, b, c, d, e, f, g, h, i, j, k, l = t_a
     m, n = t_m
-    return ((a-m)%P, (b-n)%P, c, d, e, f, g, h, i, j, k, l)
+    return ((a-m) % P, (b-n) % P, c, d, e, f, g, h, i, j, k, l)
 
 
-def fq2_t_sub_fq12_t(P, t_a, t_m):
+def fq2_sub_fq12(P, t_a, t_m):
     '''Sub tuple t_m from tuple t_a returning tuple'''
     a, b = t_a
     m, n, o, p, q, r, s, t, u, v, w, x = t_m
-    return ((a-m)%P, (b-n)%P, -o%P, -p%P, -q%P, -r%P,
-            -s%P, -t%P, -u%P, -v%P, -w%P, -x%P)
+    return ((a-m) % P, (b-n) % P, -o % P, -p % P, -q % P, -r % P,
+            -s % P, -t % P, -u % P, -v % P, -w % P, -x % P)
 
 
-def fq12_t_sub_fq6_t(P, t_a, t_m):
+def fq12_sub_fq6(P, t_a, t_m):
     '''Sub tuple t_m from tuple t_a returning tuple'''
     a, b, c, d, e, f, g, h, i, j, k, l = t_a
     m, n, o, p, q, r = t_m
-    return ((a-m)%P, (b-n)%P, (c-o)%P, (d-p)%P, (e-q)%P, (f-r)%P,
+    return ((a-m) % P, (b-n) % P, (c-o) % P, (d-p) % P, (e-q) % P, (f-r) % P,
             g, h, i, j, k, l)
 
 
-def fq6_t_sub_fq12_t(P, t_a, t_m):
+def fq6_sub_fq12(P, t_a, t_m):
     '''Sub tuple t_m from tuple t_a returning tuple'''
     a, b, c, d, e, f = t_a
     m, n, o, p, q, r, s, t, u, v, w, x = t_m
-    return ((a-m)%P, (b-n)%P, (c-o)%P, (d-p)%P, (e-q)%P, (f-r)%P,
-            -s%P, -t%P, -u%P, -v%P, -w%P, -x%P)
+    return ((a-m) % P, (b-n) % P, (c-o) % P, (d-p) % P, (e-q) % P, (f-r) % P,
+            -s % P, -t % P, -u % P, -v % P, -w % P, -x % P)
 
 
-def fq12_t_sub_fq12_t(P, t_a, t_m):
+def fq12_sub_fq12(P, t_a, t_m):
     '''Sub tuple t_m from tuple t_a returning tuple'''
     a, b, c, d, e, f, g, h, i, j, k, l = t_a
     m, n, o, p, q, r, s, t, u, v, w, x = t_m
-    return ((a-m)%P, (b-n)%P, (c-o)%P, (d-p)%P, (e-q)%P, (f-r)%P,
-            (g-s)%P, (h-t)%P, (i-u)%P, (j-v)%P, (k-w)%P, (l-x)%P)
+    return ((a-m) % P, (b-n) % P, (c-o) % P, (d-p) % P, (e-q) % P, (f-r) % P,
+            (g-s) % P, (h-t) % P, (i-u) % P, (j-v) % P, (k-w) % P, (l-x) % P)
 
 
-def fq12_t_mul_fq_int(P, t_a, m):
+def fq12_mul_fq(P, t_a, m):
     '''Multiple tuple t_a on int m returning tuple'''
     a, b, c, d, e, f, g, h, i, j, k, l = t_a
-    return (a*m%P, b*m%P, c*m%P, d*m%P, e*m%P, f*m%P,
-            g*m%P, h*m%P, i*m%P, j*m%P, k*m%P, l*m%P)
+    return (a*m % P, b*m % P, c*m % P, d*m % P, e*m % P, f*m % P,
+            g*m % P, h*m % P, i*m % P, j*m % P, k*m % P, l*m % P)
 
 
-def fq12_t_mul_fq2_t(P, t_a, t_m):
+def fq12_mul_fq2(P, t_a, t_m):
     '''Multiple tuple t_a on tuple t_m returning tuple'''
     a, b, c, d, e, f, g, h, i, j, k, l = t_a
     m, n = t_m
@@ -454,11 +436,11 @@ def fq12_t_mul_fq2_t(P, t_a, t_m):
     mul_g = g*m + h*n*fq2r; mul_h = g*n + h*m
     mul_i = i*m + j*n*fq2r; mul_j = i*n + j*m
     mul_k = k*m + l*n*fq2r; mul_l = k*n + l*m
-    return (mul_a%P, mul_b%P, mul_c%P, mul_d%P, mul_e%P, mul_f%P,
-            mul_g%P, mul_h%P, mul_i%P, mul_j%P, mul_k%P, mul_l%P)
+    return (mul_a % P, mul_b % P, mul_c % P, mul_d % P, mul_e % P, mul_f % P,
+            mul_g % P, mul_h % P, mul_i % P, mul_j % P, mul_k % P, mul_l % P)
 
 
-def fq12_t_mul_fq6_t(P, t_a, t_m):
+def fq12_mul_fq6(P, t_a, t_m):
     '''Multiple tuple t_a on tuple t_m returning tuple'''
     a, b, c, d, e, f, g, h, i, j, k, l = t_a
     m, n, o, p, q, r = t_m
@@ -485,11 +467,11 @@ def fq12_t_mul_fq6_t(P, t_a, t_m):
     mul_j = g*p + h*o + i*n + j*m + kq + lrfq2r + kr + lq
     mul_k = g*q + h*r*fq2r + i*o + j*p*fq2r + k*m + l*n*fq2r
     mul_l = g*r + h*q + i*p + j*o + k*n + l*m
-    return (mul_a%P, mul_b%P, mul_c%P, mul_d%P, mul_e%P, mul_f%P,
-            mul_g%P, mul_h%P, mul_i%P, mul_j%P, mul_k%P, mul_l%P)
+    return (mul_a % P, mul_b % P, mul_c % P, mul_d % P, mul_e % P, mul_f % P,
+            mul_g % P, mul_h % P, mul_i % P, mul_j % P, mul_k % P, mul_l % P)
 
 
-def fq12_t_mul_fq12_t(P, t_a, t_m):
+def fq12_mul_fq12(P, t_a, t_m):
     '''Multiple tuple t_a on tuple t_m returning tuple'''
     a, b, c, d, e, f, g, h, i, j, k, l = t_a
     m, n, o, p, q, r, s, t, u, v, w, x = t_m
@@ -540,18 +522,18 @@ def fq12_t_mul_fq12_t(P, t_a, t_m):
     mul_k2 = g*q + h*r*fq2r + i*o + j*p*fq2r + k*m + l*n*fq2r
     mul_l1 = a*x + b*w + c*v + d*u + e*t + f*s
     mul_l2 = g*r + h*q + i*p + j*o + k*n + l*m
-    return ((mul_a1 + mul_a2)%P, (mul_b1 + mul_b2)%P,
-            (mul_c1 + mul_c2)%P, (mul_d1 + mul_d2)%P,
-            (mul_e1 + mul_e2)%P, (mul_f1 + mul_f2)%P,
-            (mul_g1 + mul_g2)%P, (mul_h1 + mul_h2)%P,
-            (mul_i1 + mul_i2)%P, (mul_j1 + mul_j2)%P,
-            (mul_k1 + mul_k2)%P, (mul_l1 + mul_l2)%P)
+    return ((mul_a1 + mul_a2) % P, (mul_b1 + mul_b2) % P,
+            (mul_c1 + mul_c2) % P, (mul_d1 + mul_d2) % P,
+            (mul_e1 + mul_e2) % P, (mul_f1 + mul_f2) % P,
+            (mul_g1 + mul_g2) % P, (mul_h1 + mul_h2) % P,
+            (mul_i1 + mul_i2) % P, (mul_j1 + mul_j2) % P,
+            (mul_k1 + mul_k2) % P, (mul_l1 + mul_l2) % P)
 
 
 # Frobenius coefficients for raising elements to q**i -th powers
 # These are specific to this given bls12381_q
 frob_coeffs = {
-    (2, 1, 1): -1%bls12381_q,
+    (2, 1, 1): -1 % bls12381_q,
     (6, 1, 1): (0,
                 int('0x1a0111ea397fe699ec02408663d4de85aa0d85'
                     '7d89759ad4897d29650fb85f9b409427eb4f49ff'
