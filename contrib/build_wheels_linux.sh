@@ -2,7 +2,7 @@
 set -ev
 
 cd /io/gmp-6.1.2
-./configure
+./configure --enable-fat
 make
 make check
 make install
