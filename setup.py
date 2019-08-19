@@ -41,7 +41,7 @@ if USE_CYTHON:
 
 setup(
     name='python-bls',
-    version='0.1.7',
+    version='0.1.8',
     url='https://github.com/zebra-lucky/python-bls',
     license='Apache License 2.0',
     python_requires='>=3.6',
