@@ -1,0 +1,191 @@
+name: Build wheels workflow
+
+on:
+  push:
+    tags:
+    - '*'
+
+jobs:
+
+  create_release:
+    runs-on: ubuntu-18.04
+    name: Create github release
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      pkg_v: '0.1.9'
+    steps:
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+  build_linux:
+    needs: create_release
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        envs: [['manylinux2010_x86_64', ''],
+               ['manylinux1_x86_64', ''],
+               ['manylinux1_i686', 'linux32']]
+    env:
+      PLAT: ${{ matrix.envs[0] }}
+      PRE_CMD: ${{ matrix.envs[1] }}
+    name: Build wheels on linux
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Install lzip
+        run: sudo apt-get install -y lzip
+      - name: Prepare build
+        run: |
+          ./contrib/install_linux.sh
+      - name: Build wheels
+        run: |
+          source contrib/version_env.sh && ./contrib/script_linux.sh
+      - name: Upload Release Asset Python3.6
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_path: dist/python_bls-${{ needs.create_release.outputs.pkg_v }}-cp36-cp36m-${{ matrix.envs[0] }}.whl
+          asset_name: python_bls-${{ needs.create_release.outputs.pkg_v }}-cp36-cp36m-${{ matrix.envs[0] }}.whl
+          asset_content_type: application/zip
+      - name: Upload Release Asset Python3.7
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_path: dist/python_bls-${{ needs.create_release.outputs.pkg_v }}-cp37-cp37m-${{ matrix.envs[0] }}.whl
+          asset_name: python_bls-${{ needs.create_release.outputs.pkg_v }}-cp37-cp37m-${{ matrix.envs[0] }}.whl
+          asset_content_type: application/zip
+      - name: Upload Release Asset Python3.8
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_path: dist/python_bls-${{ needs.create_release.outputs.pkg_v }}-cp38-cp38-${{ matrix.envs[0] }}.whl
+          asset_name: python_bls-${{ needs.create_release.outputs.pkg_v }}-cp38-cp38-${{ matrix.envs[0] }}.whl
+          asset_content_type: application/zip
+
+  build_osx_36:
+    needs: create_release
+    runs-on: macos-10.15
+    name: Build wheel on macOS Python3.6
+    env:
+      PYTHON_VERSION: '3.6.8'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Prepare build
+        run: |
+          ./contrib/install_osx.sh
+      - name: Build wheel
+        run: |
+          source contrib/version_env.sh && ./contrib/script_osx.sh
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_path: dist/python_bls-${{ needs.create_release.outputs.pkg_v }}-cp36-cp36m-macosx_10_6_intel.whl
+          asset_name: python_bls-${{ needs.create_release.outputs.pkg_v }}-cp36-cp36m-macosx_10_6_intel.whl
+          asset_content_type: application/zip
+
+  build_osx_37:
+    needs: create_release
+    runs-on: macos-10.15
+    name: Build wheel on macOS Python3.7
+    env:
+      PYTHON_VERSION: '3.7.6'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Prepare build
+        run: |
+          ./contrib/install_osx.sh
+      - name: Build wheel
+        run: |
+          source contrib/version_env.sh && ./contrib/script_osx.sh
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_path: dist/python_bls-${{ needs.create_release.outputs.pkg_v }}-cp37-cp37m-macosx_10_6_intel.whl
+          asset_name: python_bls-${{ needs.create_release.outputs.pkg_v }}-cp37-cp37m-macosx_10_6_intel.whl
+          asset_content_type: application/zip
+
+  build_osx_38:
+    needs: create_release
+    runs-on: macos-10.15
+    name: Build wheel on macOS Python3.8
+    env:
+      PYTHON_VERSION: '3.8.6'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Prepare build
+        run: |
+          ./contrib/install_osx.sh
+      - name: Build wheel
+        run: |
+          source contrib/version_env.sh && ./contrib/script_osx.sh
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_path: dist/python_bls-${{ needs.create_release.outputs.pkg_v }}-cp38-cp38-macosx_10_9_x86_64.whl
+          asset_name: python_bls-${{ needs.create_release.outputs.pkg_v }}-cp38-cp38-macosx_10_9_x86_64.whl
+          asset_content_type: application/zip
+
+  build_win:
+    needs: create_release
+    runs-on: windows-2019
+    name: Build wheels on Win
+    strategy:
+      matrix:
+        python-version: [[3.6, 'cp36-cp36m'],
+                         [3.7, 'cp37-cp37m'],
+                         [3.8, 'cp38-cp38']]
+        python-arch: [['x86', 'win32'], ['x64', 'win_amd64']]
+    env:
+        PYVER1: ${{ matrix.python-version[1] }}
+        PYARCH1: ${{ matrix.python-arch[1] }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version[0] }}
+          architecture: ${{ matrix.python-arch[0] }}
+      - name: Prepare build
+        shell: bash
+        run: |
+          choco install wget && ./contrib/install_win_ga.sh
+      - name: Build wheels
+        shell: bash
+        run: |
+          source contrib/version_env.sh && ./contrib/script_win_ga.sh
+      - name: Upload Release Asset win32 python3.6
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_path: dist/python_bls-${{ needs.create_release.outputs.pkg_v }}-${{ matrix.python-version[1] }}-${{ matrix.python-arch[1] }}.whl
+          asset_name: python_bls-${{ needs.create_release.outputs.pkg_v }}-${{ matrix.python-version[1] }}-${{ matrix.python-arch[1] }}.whl
+          asset_content_type: application/zip

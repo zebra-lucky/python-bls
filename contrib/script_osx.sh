@@ -13,10 +13,15 @@ case $PYTHON_VERSION in
     delocate-wheel -v dist/python_bls-$PKG_VERSION-cp36-cp36m-macosx_10_6_intel.whl
     sudo pip3 install dist/python_bls-$PKG_VERSION-cp36-cp36m-macosx_10_6_intel.whl
     ;;
-  3.7.4)
+  3.7.6)
     export PATH=/Library/Frameworks/Python.framework/Versions/3.7/bin:$PATH
     delocate-wheel -v dist/python_bls-$PKG_VERSION-cp37-cp37m-macosx_10_6_intel.whl
     sudo pip3 install dist/python_bls-$PKG_VERSION-cp37-cp37m-macosx_10_6_intel.whl
+    ;;
+  3.8.6)
+    export PATH=/Library/Frameworks/Python.framework/Versions/3.8/bin:$PATH
+    delocate-wheel -v dist/python_bls-$PKG_VERSION-cp38-cp38-macosx_10_9_x86_64.whl
+    sudo pip3 install dist/python_bls-$PKG_VERSION-cp38-cp38-macosx_10_9_x86_64.whl
     ;;
 esac
 mkdir tests

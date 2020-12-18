@@ -11,7 +11,7 @@ cd /io/
 mkdir tests
 cp bls_py/tests.py tests/
 
-for PYV in cp36-cp36m cp37-cp37m
+for PYV in cp36-cp36m cp37-cp37m cp38-cp38
 do
     cd /io
     /opt/python/$PYV/bin/pip install Cython==0.29.13
@@ -28,5 +28,5 @@ done
 
 if [[ $PLAT == manylinux2010_x86_64 ]]; then
     cd /io
-    /opt/python/cp36-cp36m/bin/python setup.py sdist
+    /opt/python/cp37-cp37m/bin/python setup.py sdist
 fi
