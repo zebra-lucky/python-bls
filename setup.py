@@ -29,10 +29,16 @@ else:
 ext = '.pyx' if USE_CYTHON else '.c'
 
 
-extensions = [
-    Extension('bls_py.fields_t_c', [f'extmod/bls_py/fields_t_c{ext}'],
-              libraries=[MP_LIB]),
-]
+if sys.platform == 'darwin':
+    extensions = [
+        Extension('bls_py.fields_t_c', [f'extmod/bls_py/fields_t_c{ext}'],
+                  extra_objects=['gmp/libgmp.a']),
+    ]
+else:
+    extensions = [
+        Extension('bls_py.fields_t_c', [f'extmod/bls_py/fields_t_c{ext}'],
+                  libraries=[MP_LIB]),
+    ]
 
 
 if USE_CYTHON:
