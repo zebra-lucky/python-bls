@@ -75,6 +75,16 @@ jobs:
           asset_path: dist/python_bls-${{ needs.create_release.outputs.pkg_v }}-cp38-cp38-${{ matrix.envs[0] }}.whl
           asset_name: python_bls-${{ needs.create_release.outputs.pkg_v }}-cp38-cp38-${{ matrix.envs[0] }}.whl
           asset_content_type: application/zip
+      - name: Upload Release Asset sdist
+        if: ${{ matrix.envs[0] == 'manylinux2010_x86_64' }}
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_path: dist/python-bls-${{ needs.create_release.outputs.pkg_v }}.tar.gz
+          asset_name: python-bls-${{ needs.create_release.outputs.pkg_v }}.tar.gz
+          asset_content_type: application/zip
 
   build_osx_36:
     needs: create_release
