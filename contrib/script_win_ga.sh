@@ -9,7 +9,7 @@ else
   export MPIR_DIR=mpir/lib/x64/Release
 fi
 
-python -m pip install --upgrade pip wheel cython==0.29.21
+python -m pip install --upgrade pip wheel cython==0.29.33
 python setup.py build_ext -I $MPIR_DIR -L $MPIR_DIR
 python setup.py bdist_wheel
 

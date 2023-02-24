@@ -2,9 +2,12 @@
 set -ev
 
 
-GMP_BOTTLE=gmp-6.1.2_2.el_capitan.bottle.tar.gz
-BINTRAY_URI=https://bintray.com/homebrew/bottles/
-wget -O $GMP_BOTTLE ${BINTRAY_URI}download_file?file_path=${GMP_BOTTLE}
+GMP_BOTTLE="gmp-6.2.1.high_sierra.bottle.tar.gz"
+TOKEN="QQ=="
+GHCR_AUTH="Authorization: Bearer $TOKEN"
+GHCR_URI="https://ghcr.io/v2/homebrew/core/gmp/blobs/sha256"
+GHCR_HASH="54191ce7fa888df64b9c52870531ac0ce2e8cbd40a7c4cdec74cb2c4a421af97"
+curl -o $GMP_BOTTLE -L -H "$GHCR_AUTH" "$GHCR_URI:$GHCR_HASH"
 brew uninstall --ignore-dependencies gmp
 brew install $GMP_BOTTLE
 
@@ -21,6 +24,14 @@ case $PYTHON_VERSION in
   3.8.6)
     PY_SHA256=c8195f8b056aff380f1e89dc7dd4c37372c37e5163b91c9391f4256bf5b44fe8
     PYPKG_NAME=python-$PYTHON_VERSION-macosx10.9.pkg
+    ;;
+  3.9.13)
+    PY_SHA256=167c4e2d9f172a617ba6f3b08783cf376dec429386378066eb2f865c98030dd7
+    PYPKG_NAME=python-$PYTHON_VERSION-macosx10.9.pkg
+    ;;
+  3.10.10)
+    PY_SHA256=1c24eb452065f285249f94965f916f6a5422ec88c131e53597ded4507aa627f7
+    PYPKG_NAME=python-$PYTHON_VERSION-macos11.pkg
     ;;
 esac
 echo "$PY_SHA256  $PYPKG_NAME" > $PYPKG_NAME.sha256
